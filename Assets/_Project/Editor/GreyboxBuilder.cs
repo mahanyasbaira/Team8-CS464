@@ -2,6 +2,8 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
@@ -51,6 +53,7 @@ public static class GreyboxBuilder
         EnsureFolder(MatFolder);
         EnsureFolder(RoomFolder);
         EnsureFolder(Root + "/Scenes/Sandbox");
+        EnsureUrp();
         MakeMaterials();
 
         EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
@@ -306,6 +309,25 @@ public static class GreyboxBuilder
     }
 
     // ---------- assets ----------
+
+    // The project starts without a URP asset, so materials would render pink. Make one if needed.
+    static void EnsureUrp()
+    {
+        if (GraphicsSettings.defaultRenderPipeline != null) return;
+
+        EnsureFolder(Root + "/Settings");
+        string assetPath = Root + "/Settings/URP_Quest.asset";
+        var asset = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(assetPath);
+        if (asset == null)
+        {
+            var renderer = ScriptableObject.CreateInstance<UniversalRendererData>();
+            AssetDatabase.CreateAsset(renderer, Root + "/Settings/URP_Quest_Renderer.asset");
+            asset = UniversalRenderPipelineAsset.Create(renderer);
+            AssetDatabase.CreateAsset(asset, assetPath);
+        }
+        GraphicsSettings.defaultRenderPipeline = asset;
+        Debug.Log("[Greybox] using render pipeline asset " + assetPath);
+    }
 
     static void MakeMaterials()
     {

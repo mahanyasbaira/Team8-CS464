@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
-using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
 
 // Puts the XRI Starter Assets rig into one of the three study conditions.
 // Only call this between trials (never while a teleport is happening).
@@ -17,8 +16,10 @@ using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
 //   - Tunneling Vignette: removed/disabled in all conditions
 public class LocomotionSwitcher : MonoBehaviour
 {
-    public ControllerInputActionManager leftHand;
-    public ControllerInputActionManager rightHand;
+    [Tooltip("ControllerInputActionManager on the left controller (Starter Assets rig)")]
+    public MonoBehaviour leftHand;
+    [Tooltip("ControllerInputActionManager on the right controller (Starter Assets rig)")]
+    public MonoBehaviour rightHand;
     public ContinuousMoveProvider moveProvider;
     public TeleportationProvider teleportProvider;
     public XRRayInteractor leftTeleportInteractor;
@@ -35,9 +36,9 @@ public class LocomotionSwitcher : MonoBehaviour
         bool joystick = condition == Condition.Joystick;
 
         // the starter rig's manager swaps the stick's input actions between Move and Teleport Mode
-        leftHand.smoothMotionEnabled = joystick;
-        rightHand.smoothMotionEnabled = false;
-        rightHand.smoothTurnEnabled = false;
+        SetBool(leftHand, "smoothMotionEnabled", joystick);
+        SetBool(rightHand, "smoothMotionEnabled", false);
+        SetBool(rightHand, "smoothTurnEnabled", false);
 
         moveProvider.enabled = joystick;
         moveProvider.moveSpeed = joystickSpeed;
@@ -51,5 +52,19 @@ public class LocomotionSwitcher : MonoBehaviour
 
         Current = condition;
         Debug.Log("[Locomotion] " + ConditionNames.ToLabel(condition));
+    }
+
+    // The hand managers come from the XRI Starter Assets sample, which isn't always imported,
+    // so we set their properties by name instead of referencing the sample's type directly.
+    static void SetBool(MonoBehaviour target, string property, bool value)
+    {
+        if (target == null) return;
+        var prop = target.GetType().GetProperty(property);
+        if (prop == null || prop.PropertyType != typeof(bool))
+        {
+            Debug.LogError("[Locomotion] " + target.GetType().Name + " has no bool property " + property);
+            return;
+        }
+        prop.SetValue(target, value);
     }
 }

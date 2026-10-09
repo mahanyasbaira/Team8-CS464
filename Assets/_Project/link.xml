@@ -1,0 +1,4 @@
+<linker>
+  <!-- LocomotionSwitcher sets smoothMotionEnabled/smoothTurnEnabled by name, keep them in builds -->
+  <assembly fullname="Unity.XR.Interaction.Toolkit.Samples.StarterAssets" preserve="all" ignoreIfMissing="1" />
+</linker>
