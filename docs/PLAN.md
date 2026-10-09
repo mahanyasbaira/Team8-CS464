@@ -47,13 +47,13 @@ Source docs: [proposal report](CS464_Report_Final_Draft-2.pdf), [proposal slides
 - Conflicts: SmartMerge is a safety net, not the plan. The plan is **one owner per scene and per room prefab**, work done in prefab mode or personal sandbox scenes, and `Main.unity` touched only by its owner. ([Unity blog: scenes and prefabs for version control](https://unity.com/blog/author-scenes-and-prefabs-with-verson-control))
 
 ### R5. Agent tooling for local developers
-- **Unity's official Claude Code plugin** (released Sep 9, 2026, needs Unity 6+): Unity-authored skills + the Unity CLI + live Editor control. Install inside Claude Code: `/plugin marketplace add Unity-Technologies/unity-agent-plugin` then `/plugin install unity@unity-agent-plugin`. It drives an open Editor through the Unity CLI; without the Editor it falls back to hand-editing scene files, which we ban. The older in-Editor "Unity MCP server" in `com.unity.ai.assistant` is deprecated in favor of the CLI, so skip it. ([plugin repo](https://github.com/Unity-Technologies/unity-agent-plugin), [GameDev.net news](https://gamedev.net/news/5637-official-unity-plugin-for-claude-code/), [Unity MCP deprecation note](https://docs.unity3d.com/Packages/com.unity.ai.assistant@2.20/manual/integration/unity-mcp-get-started.html))
-- **Meta VR CLI (`metavr`)** + MCP: device list, `app` install/launch, `files ls/pull/push`, `log` (logcat), `capture` (screenshots/recording), perf traces, Meta docs search. Install with `npx -y metavr@latest ...` (Node 18+) or `/plugin marketplace add meta-quest/agentic-tools` then `/plugin install meta-vr@meta-vr`. Pick one install method only, or tools register twice. ([agentic-tools repo](https://github.com/meta-quest/agentic-tools), [Install Meta VR CLI](https://developers.meta.com/vr/essentials/metavr-install/), [metavr overview](https://developers.meta.com/horizon/essentials/metavr-overview))
+- **Unity agent plugin** (official, released Sep 2026, needs Unity 6+, optional): Unity-authored skills + the Unity CLI + live Editor control for coding agents. Install steps are in the [plugin repo](https://github.com/Unity-Technologies/unity-agent-plugin). It drives an open Editor through the Unity CLI; without the Editor it falls back to hand-editing scene files, which we ban. The older in-Editor "Unity MCP server" in `com.unity.ai.assistant` is deprecated in favor of the CLI, so skip it. ([plugin repo](https://github.com/Unity-Technologies/unity-agent-plugin), [Unity MCP deprecation note](https://docs.unity3d.com/Packages/com.unity.ai.assistant@2.20/manual/integration/unity-mcp-get-started.html))
+- **Meta VR CLI (`metavr`)** + MCP: device list, `app` install/launch, `files ls/pull/push`, `log` (logcat), `capture` (screenshots/recording), perf traces, Meta docs search. Install with `npx -y metavr@latest ...` (Node 18+) (optional). Pick one install method only, or tools register twice. ([agentic-tools repo](https://github.com/meta-quest/agentic-tools), [Install Meta VR CLI](https://developers.meta.com/vr/essentials/metavr-install/), [metavr overview](https://developers.meta.com/horizon/essentials/metavr-overview))
 - **Who installs what:**
 
 | Person | Install locally | Optional |
 |---|---|---|
-| Mahanyas (rig, Main scene, builds) | Unity Hub + 6000.3.x (with Android Build Support, OpenJDK, Android SDK/NDK), Git + Git LFS, UnityYAMLMerge config | Claude Code + Unity plugin |
+| Mahanyas (rig, Main scene, builds) | Unity Hub + 6000.3.x (with Android Build Support, OpenJDK, Android SDK/NDK), Git + Git LFS, UnityYAMLMerge config | Unity agent plugin |
 | Yulisa, Sai (rooms) | Unity Hub + same 6000.3.x (Android module only if they build), Git + Git LFS, UnityYAMLMerge config | Unity plugin (helpful for prop placement chores) |
 | Ashley (headset) | Meta Horizon app (developer mode), Meta Quest Developer Hub (drag-drop APK install, file browser), Python 3 only if she runs analysis | `metavr` via npx for one-line pull/install; Unity not required |
 
@@ -223,7 +223,7 @@ Labels: `cloud-ok`, `needs-unity-local`, `needs-headset`, plus `world`, `scripts
 
 | # | Title | Owner | Est | Depends | Labels |
 |---|---|---|---|---|---|
-| 1 | Repo hygiene: .gitignore, .gitattributes, CLAUDE.md, CONTRIBUTING.md, CI | Mahanyas | 2 | none | cloud-ok, docs |
+| 1 | Repo hygiene: .gitignore, .gitattributes, CONTRIBUTING.md, CI | Mahanyas | 2 | none | cloud-ok, docs |
 | 2 | Everyone: install Unity 6000.3.x + Git LFS + YAMLMerge, clone, open project | all 4 | 1 each | 3 | needs-unity-local |
 | 3 | Create Unity project (URP, Android, OpenXR+Meta, XRI 3.4 + Starter Assets), Force Text, commit | Mahanyas | 3 | 1 | needs-unity-local |
 | 4 | Ashley: enable developer mode, install MQDH, sideload a hello-world APK, test adb pull | Ashley | 2 | 3 | needs-headset |
@@ -284,7 +284,7 @@ No feature work after the v1.0 freeze; only crash fixes, and every rebuild gets 
 | Quest build fails / app won't install | Pin Unity patch + packages; Android module installed on the build laptop in W1; first device build in W2 not W5; keep the last good APK in Releases; Ashley's dev mode set up in W1. |
 | Motion-sickness dropouts | Seated, 5-min breaks, sickness-prone screening question, stop rule in script, joystick speed moderate (1.5 m/s, pilot-tuned); recruit 12 so losing 1-3 still leaves 9. Analysis handles partial participants (Friedman needs complete rows, so report how many were dropped). |
 | Scene merge conflicts | One build scene, one owner; rooms are prefabs with one owner each; sandbox scenes per person; CODEOWNERS; YAMLMerge configured as backup. |
-| Unity version mismatch | Exact version in CLAUDE.md, CONTRIBUTING.md, and ProjectVersion.txt; CI fails if ProjectVersion.txt changes without the doc; "never click Upgrade" rule. |
+| Unity version mismatch | Exact version in `.unity-version`, CONTRIBUTING.md, and ProjectVersion.txt; CI fails if ProjectVersion.txt changes without the doc; "never click Upgrade" rule. |
 | Layouts not equally hard | Lever spots at similar path distance from each room's entrance; pilot times compared by layout; layout is crossed with method by the Latin square anyway. |
 | Timer/logging bug ruins data | Pipeline tested on fake data first, then on a real pilot CSV in W3 and W5; flush per trial; never overwrite files. |
 | Code written in the cloud fails to compile in Unity | Keep XRI usage small, Core logic engine-free and CI-tested; Mahanyas opens the project right after each script PR and fixes compile errors before merge. |
