@@ -103,3 +103,22 @@ CI runs the same checks on every PR.
 ## 6. Data
 - Participant IDs only (`P01`..`P12`). No names, emails, or video of faces in the repo.
 - Session folders go in `data/raw/`, the Google Form export goes in `data/forms/ssq.csv`.
+
+## 7. Project rules (short version)
+Folder layout:
+```
+Assets/_Project/Scripts/Core      plain C#, no UnityEngine (asmdef Team8.Core), tested in CI
+Assets/_Project/Scripts/Runtime   MonoBehaviours (no asmdef)
+Assets/_Project/Prefabs           Rooms/, Interactables/, Player/, Kit/
+Assets/_Project/Scenes            Main.unity (only build scene), Sandbox/
+Assets/Tests/EditMode             NUnit tests for Core (also run by tests/dotnet in CI)
+analysis/                         Python analysis + fake data generator
+data/raw/<session>/               pulled CSVs (anonymous P-codes only)
+docs/                             PLAN.md, OPERATOR_CHECKLIST.md, proposal
+```
+- Pinned versions: Unity 6.3 LTS (exact patch in `ProjectSettings/ProjectVersion.txt`, mirrored in `.unity-version`), XR Interaction Toolkit 3.4.x, OpenXR + Unity OpenXR: Meta (no Oculus XR plug-in, no Meta XR SDK), URP, Android, package id `edu.colostate.cs464.team8`. Never click "Upgrade".
+- Never edit `.unity`, `.prefab`, `.asset` or `.mat` files as text. Use the Unity Editor.
+- Never change an existing `.meta` file (its GUID is how scenes find the asset). New scripts: commit the `.meta` Unity makes together with the `.cs`.
+- Logic that can be pure C# goes in `Core/` so CI tests it.
+- CSV columns are defined in `docs/PLAN.md` section 2. Change the spec, the C# writer and `analysis/` together.
+- Commit messages: short, lowercase is fine (e.g. `add lever trigger + gate open`).
