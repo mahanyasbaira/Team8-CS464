@@ -85,11 +85,11 @@ Rooms are **prefabs, not separate scenes**: one build scene, no additive loading
 | `Lever` | Lever model + XRSimpleInteractable (direct/near only) + LeverController + click sound | Sai (visual), Mahanyas (script) |
 | `Gate` | Full-height door/bars with collider that blocks walking and teleport ray + GateController | Sai |
 | `ExitDoor` | Locked door + exit trigger volume | Sai |
-| `StudyManagers` | TrialManager, SessionConfig, LayoutLoader, CsvWriter | Mahanyas |
+| `StudyManagers` | TrialManager, SessionConfig, LayoutLoader (StudyDataWriter is a plain class) | Mahanyas |
 | `OperatorPanel` / `Lobby` | World-space UI in a neutral lobby: participant ID +/-, start trial #, Start, break screen | Mahanyas |
 
 ### 1.3 Scripts
-Folder `Assets/_Project/Scripts/`. `Core/` is plain C# (asmdef with no engine references) so it can be unit tested anywhere.
+Folder `Assets/_Project/Scripts/`. `Core/` is plain C# (asmdef `Team8.Core` with no engine references) so it can be unit tested anywhere. `Runtime/` has no asmdef, so it can see the XRI Starter Assets sample without extra setup.
 
 | Script | Folder | What it does |
 |---|---|---|
@@ -107,7 +107,7 @@ Folder `Assets/_Project/Scripts/`. `Core/` is plain C# (asmdef with no engine re
 | `LayoutLoader` | Runtime | For layout A/B/C, moves each room's Lever to that room's `LeverSpot_<layout>`. |
 | `PositionLogger` | Runtime | 10 Hz sample of head (camera) x, z, yaw during a trial; writes position CSV; feeds GridBacktrackCounter. |
 | `RoomZone` | Runtime | Box trigger that reports room index for the logger. |
-| `CsvWriter` | Runtime | Opens files under `persistentDataPath/StudyData/`, flushes per trial, never overwrites (timestamp in filename). |
+| `StudyDataWriter` | Runtime | Opens files under `persistentDataPath/StudyData/<P05_timestamp>/`, flushes per trial and when the headset is taken off, never overwrites. |
 | `OperatorPanel` | Runtime | UI buttons -> SessionConfig / TrialManager. |
 
 ### 1.4 Diagram
@@ -118,7 +118,7 @@ Folder `Assets/_Project/Scripts/`. `Core/` is plain C# (asmdef with no engine re
                              TrialManager ──────────────┬───────────────┐
             Apply(condition)  │          │ Apply(layout) │ Start/Stop    │ write summary
                               v          v               v               v
-                   LocomotionSwitcher  LayoutLoader  PositionLogger   CsvWriter ──> persistentDataPath/StudyData/*.csv
+                   LocomotionSwitcher  LayoutLoader  PositionLogger   StudyDataWriter ──> persistentDataPath/StudyData/*.csv
                      │        │            │             │  feeds                         │
              MoveProvider  Teleport+Trail  Lever spots  GridBacktrackCounter              │ adb pull / MQDH
                                                                                           v
@@ -162,14 +162,16 @@ All CSVs: UTF-8, comma, header row, `.` decimal, times in seconds with 3 decimal
 `participant, trial, condition, layout, t, unix_ms, event, detail`. Events: `trial_start, lever_flip (detail=1..3), gate_open, exit_unlock, teleport (detail="x0;z0;x1;z1"), escaped, timeout, trial_abort`.
 
 ### 2.3 `trials.csv` (one row per trial)
-`participant, latin_row, trial, condition, layout, completion_s, timed_out, lever1_s, lever2_s, lever3_s, backtracks, cells_entered, unique_cells, teleports, path_m, app_version`.
+`participant, latin_row, trial, condition, layout, completion_s, timed_out, aborted, lever1_s, lever2_s, lever3_s, backtracks, cells_entered, unique_cells, teleports, path_m, app_version`.
+- `aborted=1` when the operator stopped the trial (e.g. sickness). Aborted trials are excluded from time/backtrack tests and reported separately.
+- `path_m` is the summed horizontal head movement between 10 Hz samples (teleport jumps included).
 - `completion_s` = time from Start to entering exit trigger; 300.000 and `timed_out=1` on timeout. Lever times blank if not reached.
 - In-app backtracks are a live check; the analysis script recomputes from `positions.csv` and that is the reported number.
 
 ### 2.4 Grid and re-entry rules
 - World origin at Room 1's outer corner, rooms laid along +x, so every cell id is unique across rooms.
 - **Cell size 1.0 m** (about one teleport hop shorter than typical, coarse enough to ignore head sway). The analysis also reports 0.5 m and 2 m as a sensitivity check.
-- **Hysteresis 0.15 m**: the current cell only changes when the head is more than 0.15 m inside a different cell. This stops a person standing on a line from scoring A-B-A-B.
+- **Hysteresis 0.15 m**: the current cell only changes when the head is more than 0.15 m past the edge of the current cell. This stops a person standing on a line from scoring A-B-A-B.
 - Collapse the sample stream into a sequence of cell entries (consecutive duplicates removed).
 - **Re-entry** = entering a cell that is already in the visited set (and is not the current cell). Each such entry counts 1. Consecutive frames in the same cell never count.
 - Teleport landings count only the landing cell (no cells in between). So backtracking is directly comparable between teleport and trail (H1b). For joystick vs teleport we report it with a caveat and add a normalized rate `backtracks / cells_entered`.
@@ -226,7 +228,7 @@ Labels: `cloud-ok`, `needs-unity-local`, `needs-headset`, plus `world`, `scripts
 | 3 | Create Unity project (URP, Android, OpenXR+Meta, XRI 3.4 + Starter Assets), Force Text, commit | Mahanyas | 3 | 1 | needs-unity-local |
 | 4 | Ashley: enable developer mode, install MQDH, sideload a hello-world APK, test adb pull | Ashley | 2 | 3 | needs-headset |
 | 5 | Core scripts: LatinSquare, GridBacktrackCounter, CsvUtil + EditMode tests | Mahanyas (cloud) | 4 | 1 | cloud-ok, scripts |
-| 6 | Runtime scripts: TrialManager, SessionConfig, LayoutLoader, PositionLogger, CsvWriter, Lever/Gate/Exit | Mahanyas (cloud) | 6 | 5 | cloud-ok, scripts |
+| 6 | Runtime scripts: TrialManager, SessionConfig, LayoutLoader, PositionLogger, StudyDataWriter, Lever/Gate/Exit | Mahanyas (cloud) | 6 | 5 | cloud-ok, scripts |
 | 7 | Shared kit: walls, floor, crates, shelves, materials (low poly, mobile-friendly) | Sai | 5 | 3 | needs-unity-local, world |
 | 8 | Lever, Gate, ExitDoor prefabs (visuals + colliders), wired to scripts | Sai | 4 | 6, 7 | needs-unity-local, world |
 | 9 | PlayerRig prefab: Starter Assets rig, LocomotionSwitcher wiring, snap turn, vignette off, move speed | Mahanyas | 5 | 3, 6 | needs-unity-local, scripts |
