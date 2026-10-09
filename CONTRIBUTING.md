@@ -51,7 +51,7 @@ The repo has `ProjectSettings/ProjectVersion.txt` and `Packages/manifest.json` (
 The first import takes a few minutes. If Unity asks to enable the new Input System and restart, say yes. Later (issue #3) we add OpenXR, Unity OpenXR: Meta, the test framework, and the Starter Assets + XR Device Simulator samples through *Window > Package Manager*.
 
 ### See the greybox world
-Menu **Team8 > Build Greybox**. It creates plain Room_1/2/3, PracticeRoom and Lobby prefabs in `Assets/_Project/Prefabs/Rooms/` and opens `Scenes/Sandbox/Sandbox_Greybox.unity`. Fly around the Scene view (right mouse + WASD). Running it again never overwrites a room prefab that already exists, so room owners can safely edit theirs.
+Run **Team8 > 1 Setup Project** first (once), then **Team8 > 2 Build Greybox**. It creates plain Room_1/2/3, PracticeRoom and Lobby prefabs in `Assets/_Project/Prefabs/Rooms/` and opens `Scenes/Sandbox/Sandbox_Greybox.unity`. Fly around the Scene view (right mouse + WASD). Running it again never overwrites a room prefab that already exists, so room owners can safely edit theirs.
 
 ## 2. Who owns what
 | Thing | Owner |
