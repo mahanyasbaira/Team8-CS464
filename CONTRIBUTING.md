@@ -45,6 +45,17 @@ Open the repo folder from Unity Hub (*Add > Add project from disk*). If Hub asks
 
 Check once: *Edit > Project Settings > Editor*: Asset Serialization = **Force Text**, Version Control mode = **Visible Meta Files**.
 
+### First-time project creation (only once, Mahanyas, issue #3)
+Until `ProjectSettings/` is committed, the repo only has scripts. To turn it into a Unity project:
+1. Unity Hub > *New project* > **Universal 3D** template, newest 6000.3.x, saved in a temporary folder. Let it open, then close Unity.
+2. Copy `Packages/`, `ProjectSettings/` and `Assets/Settings/` from that temp project into the repo folder.
+3. Hub > *Add > Add project from disk* > the repo folder, open it.
+4. *Window > Package Manager* > Unity Registry: install **XR Interaction Toolkit** (3.4.x) and import its **Starter Assets** and **XR Device Simulator** samples; install **OpenXR Plugin** and **Unity OpenXR: Meta**. Our scripts show compile errors until XRI and Starter Assets are in; that's expected.
+5. Put the exact editor version (from `ProjectSettings/ProjectVersion.txt`) into `.unity-version`, then commit everything Unity created on a branch.
+
+### See the greybox world
+Menu **Team8 > Build Greybox**. It creates plain Room_1/2/3, PracticeRoom and Lobby prefabs in `Assets/_Project/Prefabs/Rooms/` and opens `Scenes/Sandbox/Sandbox_Greybox.unity`. Fly around the Scene view (right mouse + WASD). Running it again never overwrites a room prefab that already exists, so room owners can safely edit theirs.
+
 ## 2. Who owns what
 | Thing | Owner |
 |---|---|
