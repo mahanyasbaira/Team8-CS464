@@ -63,8 +63,8 @@ public class PositionLogger : MonoBehaviour
         PathMetres = 0;
         hasLast = false;
         IsLogging = true;
-        nextSample = startTime;
         Sample(startTime);
+        nextSample = startTime + 1.0 / sampleHz;
     }
 
     public void End()
