@@ -1,7 +1,7 @@
 using System.Text;
-using TMPro;
 using Team8.Core;
 using UnityEngine;
+using UnityEngine.UI;
 
 // World-space panel in the lobby. Wire the buttons' OnClick to these methods.
 // Ashley sets the participant here before handing over the headset.
@@ -9,7 +9,7 @@ public class OperatorPanel : MonoBehaviour
 {
     public SessionConfig session;
     public TrialManager trials;
-    public TMP_Text info;
+    public Text info;
 
     float nextRefresh;
 
