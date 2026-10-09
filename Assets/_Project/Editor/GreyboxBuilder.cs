@@ -7,7 +7,7 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
-// Team8 > Build Greybox
+// Team8 > 2 Build Greybox
 // Builds a plain greybox of the study world (3 rooms, practice room, lobby) as prefabs
 // plus a sandbox scene, so we can see the layout before the real rooms are dressed.
 // Existing room prefabs are never overwritten, so it's safe to run again.
@@ -45,7 +45,7 @@ public static class GreyboxBuilder
 
     static Material floorMat, wallMat, propMat, gateMat, leverMat, exitMat;
 
-    [MenuItem("Team8/Build Greybox")]
+    [MenuItem("Team8/2 Build Greybox", priority = 2)]
     public static void Build()
     {
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -286,8 +286,8 @@ public static class GreyboxBuilder
         GameObjectUtility.SetStaticEditorFlags(floor, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI);
 
         var area = floor.AddComponent<TeleportationArea>();
-        int teleportLayer = InteractionLayerMask.NameToLayer("Teleport");
-        if (teleportLayer >= 0) area.interactionLayers = 1 << teleportLayer;
+        // XRI Starter Assets teleport on interaction layer 31 ("Teleport")
+        area.interactionLayers = 1 << 31;
     }
 
     static void Wall(Transform parent, string name, Vector3 basePos, Vector3 size)
