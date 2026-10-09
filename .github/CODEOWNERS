@@ -1,0 +1,18 @@
+# Default owner
+*                                       @mahanyasbaira
+
+# Main scene + player rig + scripts
+/Assets/_Project/Scenes/Main.unity      @mahanyasbaira
+/Assets/_Project/Prefabs/Player/        @mahanyasbaira
+/Assets/_Project/Scripts/               @mahanyasbaira
+
+# Room owners: replace the placeholders with real GitHub usernames once we have them,
+# then uncomment. (Lines with unknown users make GitHub show an error.)
+# /Assets/_Project/Prefabs/Rooms/Room_1*        @YULISA_GITHUB
+# /Assets/_Project/Prefabs/Rooms/Room_2*        @YULISA_GITHUB
+# /Assets/_Project/Prefabs/Rooms/PracticeRoom*  @YULISA_GITHUB
+# /Assets/_Project/Prefabs/Rooms/Room_3*        @SAI_GITHUB
+# /Assets/_Project/Prefabs/Kit/                 @SAI_GITHUB
+# /Assets/_Project/Prefabs/Interactables/       @SAI_GITHUB
+# /analysis/                                    @SAI_GITHUB
+# /docs/OPERATOR_CHECKLIST.md                   @ASHLEY_GITHUB

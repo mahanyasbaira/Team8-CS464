@@ -1,0 +1,67 @@
+# Unity generated
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/Assets/Plugins/Editor/JetBrains*
+/Assets/AssetStoreTools*
+/Assets/StreamingAssets/aa*
+
+# IDE / generated project files
+.vs/
+.vscode/
+.idea/
+.gradle/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# but keep the dotnet test project used by CI
+!/tests/dotnet/*.csproj
+
+# Unity crash / build output
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.unitypackage
+*.app
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# dotnet test output
+tests/dotnet/bin/
+tests/dotnet/obj/
+
+# python / analysis
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+results/
+
+# os junk
+.DS_Store
+Thumbs.db
