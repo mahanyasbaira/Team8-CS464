@@ -1,0 +1,144 @@
+name: unity-build
+
+# Builds the Unity world in the cloud: fetches the CC0 kit, sets up packages + XR,
+# builds rooms/rig/Main.unity, runs EditMode tests, builds the Quest APK,
+# and commits the generated Unity files back to the branch.
+# Needs repo secrets UNITY_LICENSE (contents of Unity_lic.ulf), UNITY_EMAIL, UNITY_PASSWORD.
+
+on:
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "Rebuild PlayerRig and Main.unity even if they exist"
+        type: boolean
+        default: false
+  push:
+    branches: ["baira/**"]
+    paths:
+      - "Assets/**"
+      - "Packages/**"
+      - "ProjectSettings/**"
+      - "tools/**"
+      - ".github/workflows/unity-build.yml"
+
+concurrency:
+  group: unity-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+  UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+jobs:
+  build:
+    # commits made by this workflow carry [unity-ci] and never re-trigger it
+    if: ${{ !contains(github.event.head_commit.message, '[unity-ci]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: check secrets
+        run: |
+          if [ -z "$UNITY_LICENSE" ] || [ -z "$UNITY_EMAIL" ] || [ -z "$UNITY_PASSWORD" ]; then
+            echo "::error::Add UNITY_LICENSE, UNITY_EMAIL and UNITY_PASSWORD in Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+
+      - name: free disk space for the Unity image
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker image prune -af
+          df -h /
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: fetch CC0 asset kit
+        run: python tools/fetch_assets.py
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Packages/manifest.json', 'Packages/packages-lock.json') }}
+          restore-keys: Library-Android-
+
+      - name: 1 setup packages + samples
+        uses: game-ci/unity-builder@v4
+        with:
+          targetPlatform: Android
+          buildMethod: BatchBuild.SetupPackages
+          allowDirtyBuild: true
+          versioning: None
+
+      - name: 2 configure OpenXR + Meta Quest
+        uses: game-ci/unity-builder@v4
+        with:
+          targetPlatform: Android
+          buildMethod: Team8XRSetup.Configure
+          allowDirtyBuild: true
+          versioning: None
+
+      - name: 3 build world (rooms, dressing, rig, Main.unity)
+        uses: game-ci/unity-builder@v4
+        with:
+          targetPlatform: Android
+          buildMethod: BatchBuild.BuildWorld
+          customParameters: ${{ inputs.rebuild && '-team8Rebuild' || '' }}
+          allowDirtyBuild: true
+          versioning: None
+
+      - name: 4 EditMode tests
+        uses: game-ci/unity-test-runner@v4
+        with:
+          testMode: editmode
+          artifactsPath: test-results
+
+      - name: 5 build APK
+        uses: game-ci/unity-builder@v4
+        with:
+          targetPlatform: Android
+          buildMethod: BatchBuild.BuildApk
+          allowDirtyBuild: true
+          versioning: None
+
+      - name: fix file ownership (Unity ran as root in Docker)
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" .
+
+      - name: top-down layout map
+        if: always()
+        run: |
+          pip install -q matplotlib
+          if [ -f Builds/layout.json ]; then python tools/plot_layout.py Builds/layout.json Builds/layout.png; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: team8-build
+          path: |
+            Builds/*.apk
+            Builds/layout.png
+            Builds/layout.json
+            test-results
+          if-no-files-found: warn
+
+      - name: commit generated Unity files back to the branch
+        run: |
+          git config user.name "Mahanyas Baira"
+          git config user.email "mahanyasbaira16@gmail.com"
+          git lfs install --local
+          git add Assets Packages ProjectSettings docs/ASSETS.md
+          if git diff --cached --quiet; then
+            echo "nothing new to commit"
+          else
+            git commit -m "update generated unity files [unity-ci]"
+            git push
+          fi

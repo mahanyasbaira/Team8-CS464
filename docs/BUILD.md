@@ -7,6 +7,7 @@ Everything is built from the **Team8** menu in Unity, in this order. Each step i
 | 1 | Team8 > 1 Setup Project | Installs OpenXR, Unity OpenXR: Meta, Test Framework; imports XRI Starter Assets + XR Device Simulator; new Input System; Android app id. Then opens XR Plug-in Management. | once per project (Mahanyas) |
 | 1b | (by hand) | XR Plug-in Management > Android tab: tick **OpenXR**, tick **Meta Quest** feature group, Project Validation > **Fix All**. Restart Unity. | once |
 | 2 | Team8 > 2 Build Greybox | Room_1/2/3, PracticeRoom, Lobby prefabs + `Sandbox_Greybox` scene. Never overwrites existing room prefabs. | once; rooms then owned by Yulisa/Sai |
+| 2b | Team8 > 2b Dress Rooms | Themes the rooms (warehouse / office / workshop) with the CC0 kit from `tools/fetch_assets.py`. Greybox boxes stay as the colliders so every room has the same blockers; lever spots never move. Skips rooms that are already dressed. | after the kit is fetched |
 | 3 | Team8 > 3 Build Player Rig | `PlayerRig.prefab` (variant of the Starter Assets rig) with LocomotionSwitcher, PositionLogger, TeleportTrail; snap turn 45 on the right stick only; vignette off. | Mahanyas |
 | 4 | Team8 > 4 Build Main Scene | `Main.unity`: rooms + rig + StudyManagers + operator panel, all references wired, set as the only build scene. | Mahanyas only |
 | 5 | Team8 > 5 Build APK | Quest settings (IL2CPP, ARM64, min API 32) and builds `Builds/Team8-v<version>.apk`. | Mahanyas |
@@ -19,3 +20,15 @@ Everything is built from the **Team8** menu in Unity, in this order. Each step i
 2. Team8 > 5 Build APK.
 3. GitHub > Releases > new release `v0.2.0`, attach the APK (never commit APKs).
 4. Tell Ashley; she installs it with MQDH and runs the device checklist (issue #18).
+
+## Building in the cloud (GitHub Actions)
+`.github/workflows/unity-build.yml` runs the same steps on GitHub's servers with no screen:
+fetch the CC0 kit, SetupPackages, Configure XR (OpenXR + Meta Quest), BuildWorld (greybox, dressing, rig, Main.unity), EditMode tests, APK.
+It uploads the APK and a top-down map (`layout.png`) as the run's artifact and commits the generated Unity files back to the branch, so on your laptop you just `git pull` and open `Main.unity`.
+
+One-time setup (repo owner):
+1. On a Mac where you've signed in to Unity: copy the contents of `/Library/Application Support/Unity/Unity_lic.ulf`.
+2. GitHub > Settings > Secrets and variables > Actions > New repository secret: `UNITY_LICENSE` (the file contents), `UNITY_EMAIL`, `UNITY_PASSWORD`.
+3. Actions > unity-build > Run workflow (or push to a `baira/...` branch).
+
+The first run takes 20-40 minutes (it downloads the Unity image); later runs reuse the cached `Library/`. Tick **rebuild** when running it by hand to regenerate PlayerRig and Main.unity.
