@@ -67,7 +67,9 @@ public static class GreyboxBuilder
         PlaceOrBuild("PracticeRoom", BuildPracticeRoom);
         PlaceOrBuild("Lobby", BuildLobby);
 
-        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), ScenePath);
+        // in CI keep the existing sandbox scene so every run doesn't rewrite it
+        if (!Team8Editor.Batch || !File.Exists(ScenePath))
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), ScenePath);
         AssetDatabase.SaveAssets();
 
         Selection.activeGameObject = first;

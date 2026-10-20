@@ -15,7 +15,7 @@ public static class ProjectSetup
     const string AppId = "edu.colostate.cs464.team8";
     const string PendingKey = "Team8.SetupPending";
 
-    static readonly string[] PackagesToAdd = { "com.unity.xr.openxr", "com.unity.xr.meta-openxr", "com.unity.test-framework" };
+    public static readonly string[] PackagesToAdd = { "com.unity.xr.openxr", "com.unity.xr.meta-openxr", "com.unity.test-framework" };
     static readonly string[] SamplesToImport = { "Starter Assets", "XR Device Simulator" };
 
     static AddAndRemoveRequest request;
@@ -23,12 +23,7 @@ public static class ProjectSetup
     [MenuItem("Team8/1 Setup Project", priority = 1)]
     public static void Setup()
     {
-        PlayerSettings.companyName = "Team8";
-        PlayerSettings.productName = "Team8 Locomotion Study";
-        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, AppId);
-        EditorSettings.serializationMode = SerializationMode.ForceText;
-        VersionControlSettings.mode = "Visible Meta Files";
-
+        ApplyBasicSettings();
         ImportXriSamples();
         UseNewInputSystem();
 
@@ -38,7 +33,16 @@ public static class ProjectSetup
         Debug.Log("[Setup] installing " + string.Join(", ", PackagesToAdd) + " (takes a minute)");
     }
 
-    static void ImportXriSamples()
+    public static void ApplyBasicSettings()
+    {
+        PlayerSettings.companyName = "Team8";
+        PlayerSettings.productName = "Team8 Locomotion Study";
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, AppId);
+        EditorSettings.serializationMode = SerializationMode.ForceText;
+        VersionControlSettings.mode = "Visible Meta Files";
+    }
+
+    public static void ImportXriSamples()
     {
         foreach (var sample in Sample.FindByPackage(XriPackage, null))
         {
@@ -54,7 +58,7 @@ public static class ProjectSetup
     }
 
     // Player Settings > Active Input Handling = Input System Package (New). Needs a restart.
-    static void UseNewInputSystem()
+    public static void UseNewInputSystem()
     {
         var assets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset");
         if (assets == null || assets.Length == 0) return;

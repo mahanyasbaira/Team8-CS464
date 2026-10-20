@@ -16,12 +16,12 @@ public static class ApkBuilder
     {
         if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android, BuildTarget.Android))
         {
-            EditorUtility.DisplayDialog("Team8", "Android Build Support isn't installed.\nUnity Hub > Installs > this version > Add modules > Android Build Support (with OpenJDK and SDK/NDK).", "OK");
+            Team8Editor.Fail("Android Build Support isn't installed.\nUnity Hub > Installs > this version > Add modules > Android Build Support (with OpenJDK and SDK/NDK).");
             return;
         }
         if (AssetDatabase.LoadAssetAtPath<SceneAsset>(MainPath) == null)
         {
-            EditorUtility.DisplayDialog("Team8", "No Main.unity yet. Run Team8 > 4 Build Main Scene first.", "OK");
+            Team8Editor.Fail("No Main.unity yet. Run Team8 > 4 Build Main Scene first.");
             return;
         }
 
@@ -42,11 +42,11 @@ public static class ApkBuilder
         if (report.summary.result == BuildResult.Succeeded)
         {
             Debug.Log("[Build] " + apk + " (" + report.summary.totalSize / (1024 * 1024) + " MB)");
-            EditorUtility.RevealInFinder(apk);
+            if (!Team8Editor.Batch) EditorUtility.RevealInFinder(apk);
         }
         else
         {
-            EditorUtility.DisplayDialog("Team8", "Build " + report.summary.result + ". See the Console for errors.", "OK");
+            Team8Editor.Fail("Build " + report.summary.result + ". See the Console for errors.");
         }
     }
 

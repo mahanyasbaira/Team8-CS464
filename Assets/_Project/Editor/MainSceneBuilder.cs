@@ -27,12 +27,12 @@ public static class MainSceneBuilder
         if (Load(RigPath) == null) missing.Add("PlayerRig");
         if (missing.Count > 0)
         {
-            EditorUtility.DisplayDialog("Team8", "Missing prefabs: " + string.Join(", ", missing) +
-                "\nRun Team8 > 2 Build Greybox and Team8 > 3 Build Player Rig first.", "OK");
+            Team8Editor.Fail("Missing prefabs: " + string.Join(", ", missing) +
+                "\nRun Team8 > 2 Build Greybox and Team8 > 3 Build Player Rig first.");
             return;
         }
         if (AssetDatabase.LoadAssetAtPath<SceneAsset>(MainPath) != null &&
-            !EditorUtility.DisplayDialog("Team8", "Main.unity already exists. Rebuild it from the prefabs?", "Rebuild", "Cancel"))
+            !Team8Editor.Confirm("Main.unity already exists. Rebuild it from the prefabs?"))
             return;
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 

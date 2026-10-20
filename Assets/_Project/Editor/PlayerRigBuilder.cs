@@ -26,11 +26,11 @@ public static class PlayerRigBuilder
         var source = FindStarterRig();
         if (source == null)
         {
-            EditorUtility.DisplayDialog("Team8", "Can't find the Starter Assets 'XR Origin (XR Rig)' prefab.\nRun Team8 > 1 Setup Project first.", "OK");
+            Team8Editor.Fail("Can't find the Starter Assets 'XR Origin (XR Rig)' prefab.\nRun Team8 > 1 Setup Project first.");
             return;
         }
         if (AssetDatabase.LoadAssetAtPath<GameObject>(RigPath) != null &&
-            !EditorUtility.DisplayDialog("Team8", "PlayerRig.prefab already exists. Rebuild it?", "Rebuild", "Cancel"))
+            !Team8Editor.Confirm("PlayerRig.prefab already exists. Rebuild it?"))
             return;
 
         EnsureFolder(PlayerFolder);
