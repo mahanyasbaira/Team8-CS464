@@ -62,7 +62,7 @@ namespace Team8.Core
         {
             "participant", "latin_row", "trial", "condition", "layout",
             "completion_s", "timed_out", "aborted", "lever1_s", "lever2_s", "lever3_s",
-            "backtracks", "cells_entered", "unique_cells", "teleports", "path_m", "app_version"
+            "backtracks", "cells_entered", "unique_cells", "teleports", "props_grabbed", "path_m", "app_version"
         };
     }
 }

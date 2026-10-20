@@ -41,7 +41,7 @@ namespace Team8.Tests
             var r = new TrialResult
             {
                 Participant = "P01", LatinRow = 1, Trial = 2, Condition = Condition.Trail, Layout = 'B',
-                CompletionSeconds = 300, TimedOut = true, AppVersion = "0.1.0"
+                CompletionSeconds = 300, TimedOut = true, PropsGrabbed = 2, AppVersion = "0.1.0"
             };
             r.LeverSeconds[0] = 41.25;
             var fields = r.ToCsvFields();
@@ -51,6 +51,8 @@ namespace Team8.Tests
             Assert.AreEqual("1", fields[6]);
             Assert.AreEqual("41.250", fields[8]);
             Assert.AreEqual("", fields[9]);
+            Assert.AreEqual("2", fields[System.Array.IndexOf(CsvSchema.TrialColumns, "props_grabbed")]);
+            Assert.AreEqual("0.1.0", fields[fields.Length - 1]);
         }
     }
 }

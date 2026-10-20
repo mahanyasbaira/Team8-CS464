@@ -37,6 +37,10 @@ public class TrialManager : MonoBehaviour
     public string DataFolder => writer != null ? writer.Folder : "";
     public bool SessionStarted => writer != null;
 
+    // decoy props grabbed in the current (or last) trial, shown on the operator panel
+    public GrabLog Grabs { get; } = new GrabLog();
+    public double LastTrialSeconds { get; private set; }
+
     StudyDataWriter writer;
     TrialResult result;
     double trialStart;
@@ -45,12 +49,14 @@ public class TrialManager : MonoBehaviour
     {
         foreach (var l in levers) if (l != null) l.Flipped += OnLeverFlipped;
         if (practiceLever != null) practiceLever.Flipped += OnPracticeLever;
+        GrabbableProp.Grabbed += OnPropGrabbed;
     }
 
     void OnDisable()
     {
         foreach (var l in levers) if (l != null) l.Flipped -= OnLeverFlipped;
         if (practiceLever != null) practiceLever.Flipped -= OnPracticeLever;
+        GrabbableProp.Grabbed -= OnPropGrabbed;
     }
 
     void Start()
@@ -105,6 +111,9 @@ public class TrialManager : MonoBehaviour
             AppVersion = session.AppVersion
         };
 
+        Grabs.Clear();
+        GrabbableProp.ResetAll();
+
         trialStart = Time.timeAsDouble;
         logger.Begin(writer, session.ParticipantId, spec.TrialNumber, spec.Condition, spec.Layout, trialStart);
         logger.WriteEvent("trial_start");
@@ -138,6 +147,14 @@ public class TrialManager : MonoBehaviour
         }
     }
 
+    // every grab is an event; the trial summary counts unique props
+    void OnPropGrabbed(GrabbableProp prop)
+    {
+        if (CurrentState != State.Running) return;
+        Grabs.Add(prop.propName, Elapsed);
+        logger.WriteEvent("prop_grab", prop.propName);
+    }
+
     void OnPracticeLever(int room)
     {
         if (CurrentState == State.Practice) Message = "Practice lever done. Press Start when ready.";
@@ -163,6 +180,8 @@ public class TrialManager : MonoBehaviour
         result.UniqueCells = logger.Grid.UniqueCells;
         result.Teleports = logger.Teleports;
         result.PathMetres = logger.PathMetres;
+        result.PropsGrabbed = Grabs.Count;
+        LastTrialSeconds = t;
         writer.WriteTrial(result);
         writer.Flush();
 

@@ -20,6 +20,7 @@ namespace Team8.Core
         public int CellsEntered;
         public int UniqueCells;
         public int Teleports;
+        public int PropsGrabbed;
         public double PathMetres;
         public string AppVersion;
 
@@ -42,6 +43,7 @@ namespace Team8.Core
                 CsvUtil.Int(CellsEntered),
                 CsvUtil.Int(UniqueCells),
                 CsvUtil.Int(Teleports),
+                CsvUtil.Int(PropsGrabbed),
                 CsvUtil.Num(PathMetres),
                 AppVersion ?? ""
             };

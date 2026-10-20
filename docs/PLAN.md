@@ -157,10 +157,11 @@ All CSVs: UTF-8, comma, header row, `.` decimal, times in seconds with 3 decimal
 | cell_id | 3_7 | |
 
 ### 2.2 `events.csv`
-`participant, trial, condition, layout, t, unix_ms, event, detail`. Events: `trial_start, lever_flip (detail=1..3), gate_open, exit_unlock, teleport (detail="x0;z0;x1;z1"), escaped, timeout, trial_abort`.
+`participant, trial, condition, layout, t, unix_ms, event, detail`. Events: `trial_start, lever_flip (detail=1..3), gate_open, exit_unlock, teleport (detail="x0;z0;x1;z1"), escaped, timeout, trial_abort, prop_grab (detail=prop name)`.
 
 ### 2.3 `trials.csv` (one row per trial)
-`participant, latin_row, trial, condition, layout, completion_s, timed_out, aborted, lever1_s, lever2_s, lever3_s, backtracks, cells_entered, unique_cells, teleports, path_m, app_version`.
+`participant, latin_row, trial, condition, layout, completion_s, timed_out, aborted, lever1_s, lever2_s, lever3_s, backtracks, cells_entered, unique_cells, teleports, props_grabbed, path_m, app_version`.
+- `props_grabbed` = number of different decoy props picked up in the trial (set dressing, same props in every condition; reported descriptively, not a hypothesis test).
 - `aborted=1` when the operator stopped the trial (e.g. sickness). Aborted trials are excluded from time/backtrack tests and reported separately.
 - `path_m` is the summed horizontal head movement between 10 Hz samples (teleport jumps included).
 - `completion_s` = time from Start to entering exit trigger; 300.000 and `timed_out=1` on timeout. Lever times blank if not reached.

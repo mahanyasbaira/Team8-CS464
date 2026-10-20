@@ -296,7 +296,7 @@ def main():
 
     summaries = [describe(valid, v) for v in
                  ["completion_s", "backtracks_1m", "backtracks_0.5m", "backtracks_2m",
-                  "backtrack_rate", "teleports", "path_m"] if v in valid]
+                  "backtrack_rate", "teleports", "props_grabbed", "path_m"] if v in valid]
 
     def omnibus(df, value, label):
         w = wide(df, value)

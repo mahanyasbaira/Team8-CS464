@@ -135,7 +135,7 @@ def write_session(rng, out, pid, start_ms):
     ev.writerow(["participant", "trial", "condition", "layout", "t", "unix_ms", "event", "detail"])
     tr.writerow(["participant", "latin_row", "trial", "condition", "layout", "completion_s", "timed_out",
                  "aborted", "lever1_s", "lever2_s", "lever3_s", "backtracks", "cells_entered",
-                 "unique_cells", "teleports", "path_m", "app_version"])
+                 "unique_cells", "teleports", "props_grabbed", "path_m", "app_version"])
 
     for trial, condition, layout in order_for(pid):
         samples, events, levers, done_t, timed_out = simulate_trial(rng, condition, layout)
@@ -147,12 +147,13 @@ def write_session(rng, out, pid, start_ms):
         for t, name, detail in events:
             ev.writerow([pid, trial, condition, layout, fmt(t), base + int(t * 1000), name, detail])
 
-        bt = count_backtracks([s[1] for s in samples], [s[2] for s in samples], CELL, 0.15)
+        # count on the same 3-decimal values that go into positions.csv
+        bt = count_backtracks([round(s[1], 3) for s in samples], [round(s[2], 3) for s in samples], CELL, 0.15)
         path = sum(math.hypot(b[1] - a[1], b[2] - a[2]) for a, b in zip(samples, samples[1:]))
         teleports = sum(1 for e in events if e[1] == "teleport")
         tr.writerow([pid, latin_row(pid), trial, condition, layout, fmt(done_t), int(timed_out), 0,
                      fmt(levers[0]), fmt(levers[1]), fmt(levers[2]), bt["backtracks"],
-                     bt["cells_entered"], bt["unique_cells"], teleports, fmt(path), "fake"])
+                     bt["cells_entered"], bt["unique_cells"], teleports, rng.randint(0, 4), fmt(path), "fake"])
     for f in (pos_f, ev_f, tr_f):
         f.close()
 

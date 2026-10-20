@@ -57,6 +57,9 @@ public class OperatorPanel : MonoBehaviour
         sb.AppendLine("State: " + trials.CurrentState);
         if (trials.CurrentState == TrialManager.State.Running)
             sb.AppendLine("Time: " + trials.Elapsed.ToString("0") + " s");
+        else if (trials.LastTrialSeconds > 0)
+            sb.AppendLine("Last trial: " + trials.LastTrialSeconds.ToString("0") + " s");
+        sb.AppendLine("Props grabbed: " + trials.Grabs.Summary());
         sb.AppendLine(trials.Message);
         if (trials.SessionStarted) sb.AppendLine("Saving to: " + trials.DataFolder);
         info.text = sb.ToString();
