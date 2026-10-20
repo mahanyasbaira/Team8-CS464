@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install -r analysis/requirements.txt
+      - run: python -m pip install -r analysis/requirements.txt -r tools/requirements.txt
       - run: python -m pytest analysis tools -q
       - name: run pipeline on fake data
         run: |

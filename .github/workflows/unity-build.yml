@@ -62,7 +62,9 @@ jobs:
           python-version: "3.12"
 
       - name: fetch CC0 asset kit
-        run: python tools/fetch_assets.py
+        run: |
+          pip install -q -r tools/requirements.txt
+          python tools/fetch_assets.py
 
       - uses: actions/cache@v4
         with:
