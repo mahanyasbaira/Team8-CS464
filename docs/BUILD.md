@@ -8,8 +8,11 @@ Everything is built from the **Team8** menu in Unity, in this order. Each step i
 | 1b | (by hand) | XR Plug-in Management > Android tab: tick **OpenXR**, tick **Meta Quest** feature group, Project Validation > **Fix All**. Restart Unity. | once |
 | 2 | Team8 > 2 Build Greybox | Room_1/2/3, PracticeRoom, Lobby prefabs + `Sandbox_Greybox` scene. Never overwrites existing room prefabs. | once; rooms then owned by Yulisa/Sai |
 | 2b | Team8 > 2b Dress Rooms | Themes the rooms (warehouse / office / workshop) with the CC0 kit from `tools/fetch_assets.py`. Greybox boxes stay as the colliders so every room has the same blockers; lever spots never move. Skips rooms that are already dressed. | after the kit is fetched |
+| 2c | Team8 > 2c Build Building | `Building.prefab`: south corridor, front hall, east wing, closed doors (same in every room), ceilings, roof, light panels. Room prefabs are not touched. | any time |
+| - | Team8 > Check Triangle Budget | Room + building must stay under 750k triangles; drops decoy props first if a room is over. | after dressing |
 | 3 | Team8 > 3 Build Player Rig | `PlayerRig.prefab` (variant of the Starter Assets rig) with LocomotionSwitcher, PositionLogger, TeleportTrail; snap turn 45 on the right stick only; vignette off. | Mahanyas |
 | 4 | Team8 > 4 Build Main Scene | `Main.unity`: rooms + rig + StudyManagers + operator panel, all references wired, set as the only build scene. | Mahanyas only |
+| 4b | Team8 > 4b Bake Lighting | Area lights under every light panel, light probes, box-projected reflection probes, lightmaps (Progressive CPU), occlusion culling, Quest URP settings. No light has real-time shadows. | after 4 |
 | 5 | Team8 > 5 Build APK | Quest settings (IL2CPP, ARM64, min API 32) and builds `Builds/Team8-v<version>.apk`. | Mahanyas |
 
 ## Testing in the Editor without a headset
@@ -23,7 +26,7 @@ Everything is built from the **Team8** menu in Unity, in this order. Each step i
 
 ## Building in the cloud (GitHub Actions)
 `.github/workflows/unity-build.yml` runs the same steps on GitHub's servers with no screen:
-fetch the CC0 kit, SetupPackages, Configure XR (OpenXR + Meta Quest), BuildWorld (greybox, dressing, rig, Main.unity), EditMode tests, APK.
+fetch the CC0 kit, SetupPackages, Configure XR (OpenXR + Meta Quest), BuildWorld (greybox, dressing, building, budget check, rig, Main.unity, light bake), EditMode tests, APK.
 It uploads the APK and a top-down map (`layout.png`) as the run's artifact and commits the generated Unity files back to the branch, so on your laptop you just `git pull` and open `Main.unity`.
 
 One-time setup (repo owner):
@@ -31,4 +34,4 @@ One-time setup (repo owner):
 2. GitHub > Settings > Secrets and variables > Actions > New repository secret: `UNITY_LICENSE` (the file contents), `UNITY_EMAIL`, `UNITY_PASSWORD`.
 3. Actions > unity-build > Run workflow (or push to a `baira/...` branch).
 
-The first run takes 20-40 minutes (it downloads the Unity image); later runs reuse the cached `Library/`. Tick **rebuild** when running it by hand to regenerate PlayerRig and Main.unity.
+The first run takes 20-40 minutes (it downloads the Unity image); later runs reuse the cached `Library/`. Main.unity is regenerated and re-baked on every run. Tick **rebuild** when running it by hand to also regenerate the dressed rooms (only ones marked `DressedRoom.generated`) and the PlayerRig.

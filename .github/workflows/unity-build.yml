@@ -38,7 +38,7 @@ jobs:
     # commits made by this workflow carry [unity-ci] and never re-trigger it
     if: ${{ !contains(github.event.head_commit.message, '[unity-ci]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
     steps:
       - name: check secrets
         run: |
@@ -88,7 +88,7 @@ jobs:
           allowDirtyBuild: true
           versioning: None
 
-      - name: 3 build world (rooms, dressing, rig, Main.unity)
+      - name: 3 build world (rooms, dressing, building, budget, rig, Main.unity, light bake)
         uses: game-ci/unity-builder@v4
         with:
           targetPlatform: Android
