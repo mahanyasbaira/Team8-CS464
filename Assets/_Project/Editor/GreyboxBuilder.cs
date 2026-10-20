@@ -48,7 +48,8 @@ public static class GreyboxBuilder
     [MenuItem("Team8/2 Build Greybox", priority = 2)]
     public static void Build()
     {
-        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        // this prompt blocks forever in batch mode (CI), so only ask in the Editor
+        if (!Team8Editor.Batch && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
         EnsureFolder(MatFolder);
         EnsureFolder(RoomFolder);

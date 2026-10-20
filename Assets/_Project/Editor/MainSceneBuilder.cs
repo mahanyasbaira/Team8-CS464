@@ -34,7 +34,8 @@ public static class MainSceneBuilder
         if (AssetDatabase.LoadAssetAtPath<SceneAsset>(MainPath) != null &&
             !Team8Editor.Confirm("Main.unity already exists. Rebuild it from the prefabs?"))
             return;
-        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        // this prompt blocks forever in batch mode (CI), so only ask in the Editor
+        if (!Team8Editor.Batch && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
         var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 

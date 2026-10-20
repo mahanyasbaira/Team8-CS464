@@ -42,8 +42,12 @@ public static class BatchBuild
 
         if (Rebuild || AssetDatabase.LoadAssetAtPath<GameObject>(RigPath) == null)
             PlayerRigBuilder.Build();
-        if (Rebuild || AssetDatabase.LoadAssetAtPath<SceneAsset>(MainPath) == null)
-            MainSceneBuilder.Build();
+
+        // Main.unity is fully generated, so always rebuild it from the prefabs
+        MainSceneBuilder.Build();
+        AssetDatabase.Refresh();
+        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(MainPath) == null)
+            throw new System.Exception("[Batch] " + MainPath + " was not written");
 
         ExportLayout("Builds/layout.json");
         AssetDatabase.SaveAssets();
