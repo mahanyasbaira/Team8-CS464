@@ -89,6 +89,13 @@ public static class PlayerRigBuilder
         Require(leftManager, "left ControllerInputActionManager");
         Require(rightManager, "right ControllerInputActionManager");
 
+        // flatter teleport arc so it stays under the 3 m ceilings (apex about 2.6 m, reach about 6.5 m)
+        foreach (var ray in teleportRays)
+        {
+            ray.velocity = 8f;
+            Record(ray);
+        }
+
         // turning is the same in every condition: right stick, 45 degree snaps
         snap.turnAmount = 45f;
         snap.leftHandTurnInput.inputSourceMode = XRInputValueReader.InputSourceMode.Unused;

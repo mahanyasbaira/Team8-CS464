@@ -47,6 +47,16 @@ public static class MainSceneBuilder
         var rooms = names.Select(n => (GameObject)PrefabUtility.InstantiatePrefab(Load(RoomFolder + "/" + n + ".prefab"))).ToArray();
         var rig = (GameObject)PrefabUtility.InstantiatePrefab(Load(RigPath));
 
+        // the building shell around everything; practice room and lobby move next to its front hall
+        var building = Load(BuildingBuilder.PrefabPath);
+        if (building != null)
+        {
+            PrefabUtility.InstantiatePrefab(building);
+            rooms[3].transform.position = BuildingBuilder.PracticeOrigin;
+            rooms[4].transform.position = BuildingBuilder.LobbyOrigin;
+        }
+        else Debug.LogWarning("[Main] no Building.prefab, run Team8 > 2c Build Building for the full building");
+
         var managers = new GameObject("StudyManagers");
         var session = managers.AddComponent<SessionConfig>();
         var layouts = managers.AddComponent<LayoutLoader>();
