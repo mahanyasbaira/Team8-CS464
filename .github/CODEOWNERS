@@ -1,17 +1,13 @@
 # Default owner
-*                                       @mahanyasbaira
+*                               @mahanyasbaira
 
-# Main scene + player rig + scripts
-/Assets/_Project/Scenes/Main.unity      @mahanyasbaira
-/Assets/_Project/Prefabs/Player/        @mahanyasbaira
-/Assets/_Project/Scripts/               @mahanyasbaira
+# Unity project (all VR development)
+/Assets/                        @mahanyasbaira
+/Packages/                      @mahanyasbaira
+/ProjectSettings/               @mahanyasbaira
 
-# Room owners. Sai's lines stay commented until we have Sai's GitHub username.
-/Assets/_Project/Prefabs/Rooms/Room_1*        @ymedrano12
-/Assets/_Project/Prefabs/Rooms/Room_2*        @ymedrano12
-/Assets/_Project/Prefabs/Rooms/PracticeRoom*  @ymedrano12
-# /Assets/_Project/Prefabs/Rooms/Room_3*        @SAI_GITHUB
-# /Assets/_Project/Prefabs/Kit/                 @SAI_GITHUB
-# /Assets/_Project/Prefabs/Interactables/       @SAI_GITHUB
-# /analysis/                                    @SAI_GITHUB
-/docs/OPERATOR_CHECKLIST.md                     @apoppa17
+# Analysis
+/analysis/                      @randomguy6
+
+# Study sessions
+/docs/OPERATOR_CHECKLIST.md     @apoppa17

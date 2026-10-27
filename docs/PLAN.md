@@ -54,7 +54,7 @@ Source docs: [proposal report](CS464_Report_Final_Draft-2.pdf), [proposal slides
 | Person | Install locally | Optional |
 |---|---|---|
 | Mahanyas (rig, Main scene, builds) | Unity Hub + 6000.3.x (with Android Build Support, OpenJDK, Android SDK/NDK), Git + Git LFS, UnityYAMLMerge config | `metavr` |
-| Yulisa, Sai (rooms) | Unity Hub + same 6000.3.x (Android module only if they build), Git + Git LFS, UnityYAMLMerge config | none |
+| Yulisa, Sai (report, analysis, testing) | Git + Git LFS; Python 3 for analysis (Sai); Unity Hub + same 6000.3.x only to open builds and test in the simulator | none |
 | Ashley (headset) | Meta Horizon app (developer mode), Meta Quest Developer Hub, Python 3 only if she runs analysis | `metavr`; Unity not required |
 
 ### R6. Logging on Quest
@@ -77,12 +77,12 @@ Rooms are **prefabs, not separate scenes**: one build scene, no additive loading
 | Prefab | Contents | Owner |
 |---|---|---|
 | `PlayerRig` | XRI Starter Assets XR Origin (Character Controller), LocomotionSwitcher, PositionLogger, TeleportTrail | Mahanyas |
-| `Room_1`, `Room_2`, `Room_3` | ~8 x 8 m greybox then props; floor with TeleportationArea; occluding props; `LeverSpot_A/B/C` empties; one Lever; one Gate (Room_3 gets ExitDoor instead); `RoomZone` trigger | Room_1+2: Yulisa, Room_3: Sai |
-| `PracticeRoom` | Small room with one practice lever, separate from the 3 rooms | Yulisa |
-| `Kit_*` | Shared wall/floor/crate/shelf pieces + materials | Sai |
-| `Lever` | Lever model + XRSimpleInteractable (direct/near only) + LeverController + click sound | Sai (visual), Mahanyas (script) |
-| `Gate` | Full-height door/bars with collider that blocks walking and teleport ray + GateController | Sai |
-| `ExitDoor` | Locked door + exit trigger volume | Sai |
+| `Room_1`, `Room_2`, `Room_3` | ~8 x 8 m greybox then props; floor with TeleportationArea; occluding props; `LeverSpot_A/B/C` empties; one Lever; one Gate (Room_3 gets ExitDoor instead); `RoomZone` trigger | Mahanyas |
+| `PracticeRoom` | Small room with one practice lever, separate from the 3 rooms | Mahanyas |
+| `Kit_*` | Shared wall/floor/crate/shelf pieces + materials | Mahanyas |
+| `Lever` | Small lever (about 30 cm) + XRSimpleInteractable + LeverController + click sound | Mahanyas |
+| `Gate` | Full-height door/bars with collider that blocks walking and teleport ray + GateController | Mahanyas |
+| `ExitDoor` | Locked door + exit trigger volume | Mahanyas |
 | `StudyManagers` | TrialManager, SessionConfig, LayoutLoader (StudyDataWriter is a plain class) | Mahanyas |
 | `OperatorPanel` / `Lobby` | World-space UI in a neutral lobby: participant ID +/-, start trial #, Start, break screen | Mahanyas |
 
@@ -137,6 +137,23 @@ docs/  PLAN.md, OPERATOR_CHECKLIST.md, proposal PDF + PPTX
 tests/dotnet/  StudyCore.Tests.csproj (links Core + EditMode tests, runs in CI)
 .github/workflows/ci.yml   .github/CODEOWNERS
 ```
+
+### 1.6 Room design (updated Oct 27)
+Three themed rooms, all 8 x 8 m with the same gates and the same lever spots A/B/C:
+
+| Room | Theme | Look | Hiding kits (spot A / B / C) |
+|---|---|---|---|
+| Room_1 | English bedroom | hunter-green walls, wood wainscoting and crown molding, tufted leather bed with plaid bedding, brass lamps, gallery wall of frames, riding boots, leather trunk, sisal rug | under the bed / behind a leather armchair / inside a half-open wardrobe |
+| Room_2 | Antique shop / attic | wood floor and beams, furniture under dust sheets, trunks, mirrors, leaning frames, stacked chairs, old lamps | under a sheet-covered table / behind leaning frames / inside an open cabinet |
+| Room_3 | Victorian kitchen / pantry | checkered tile floor, pantry shelves of jars, hutch, hanging copper pans, range, sacks and barrels | under the big table / behind flour sacks / inside an open lower cabinet |
+
+Rules that keep the rooms fair:
+- **Same hiding geometry in every room.** Each spot gets a hiding kit with the same cover shape, size and opening in all three themes; only the look changes. A = under a low cover (top 0.55 m, open underneath), B = behind a 1.15 m cover, C = inside a cabinet opening sideways.
+- **The lever never has to be uncovered.** It is hard to see but always reachable without moving anything, so completion time stays search + movement.
+- **Smaller lever**: about 30 cm (base + handle), placed 0.05-0.5 m high depending on the kit; its grab area is a bit bigger than the visual.
+- **Same amount of stuff per room**: the same number of furniture pieces along the walls (the smallest count that fits all three rooms), the same 6 grabbable decoys, similar wall decor, and similar light levels.
+- **Quest budget**: under 750k triangles and roughly 150 draw calls per room view, few shared materials per theme, static batching.
+- **Pilot check**: median trial about 1-2.5 minutes with almost no 5-minute timeouts. If levers are too hard, the kits get loosened in all rooms the same way.
 
 ## 2. Data spec
 All CSVs: UTF-8, comma, header row, `.` decimal, times in seconds with 3 decimals. One folder per session: `StudyData/P05_20261118-143012/`.
@@ -228,33 +245,35 @@ Labels: `cloud-ok`, `needs-unity-local`, `needs-headset`, plus `world`, `scripts
 | 4 | Ashley: enable developer mode, install MQDH, sideload a hello-world APK, test adb pull | Ashley | 2 | 3 | needs-headset |
 | 5 | Core scripts: LatinSquare, GridBacktrackCounter, CsvUtil + EditMode tests | Mahanyas | 4 | 1 | cloud-ok, scripts |
 | 6 | Runtime scripts: TrialManager, SessionConfig, LayoutLoader, PositionLogger, StudyDataWriter, Lever/Gate/Exit | Mahanyas | 6 | 5 | cloud-ok, scripts |
-| 7 | Shared kit: walls, floor, crates, shelves, materials (low poly, mobile-friendly) | Sai | 5 | 3 | needs-unity-local, world |
-| 8 | Lever, Gate, ExitDoor prefabs (visuals + colliders), wired to scripts | Sai | 4 | 6, 7 | needs-unity-local, world |
+| 7 | Shared kit: walls, floor, crates, shelves, materials (low poly, mobile-friendly) | Mahanyas | 5 | 3 | needs-unity-local, world |
+| 8 | Lever, Gate, ExitDoor prefabs (visuals + colliders), wired to scripts | Mahanyas | 4 | 6, 7 | needs-unity-local, world |
 | 9 | PlayerRig prefab: Starter Assets rig, LocomotionSwitcher wiring, snap turn, vignette off, move speed | Mahanyas | 5 | 3, 6 | needs-unity-local, scripts |
 | 10 | TeleportTrail (pooled markers + LineRenderer) | Mahanyas | 3 | 9 | needs-unity-local, scripts |
-| 11 | Room_1 prefab: greybox, props, LeverSpot A/B/C, RoomZone | Yulisa | 6 | 7 | needs-unity-local, world |
-| 12 | Room_2 prefab | Yulisa | 6 | 7 | needs-unity-local, world |
-| 13 | Room_3 prefab + exit area | Sai | 6 | 7, 8 | needs-unity-local, world |
-| 14 | PracticeRoom + Lobby geometry | Yulisa | 3 | 7 | needs-unity-local, world |
+| 11 | Room_1 prefab: English bedroom theme, hiding kits, LeverSpot A/B/C, RoomZone | Mahanyas | 6 | 7 | needs-unity-local, world |
+| 12 | Room_2 prefab: antique shop / attic theme | Mahanyas | 6 | 7 | needs-unity-local, world |
+| 13 | Room_3 prefab: Victorian kitchen / pantry theme + exit area | Mahanyas | 6 | 7, 8 | needs-unity-local, world |
+| 14 | PracticeRoom + Lobby geometry | Mahanyas | 3 | 7 | needs-unity-local, world |
 | 15 | Main.unity assembly: place rooms, managers, operator panel; end-to-end in XR Device Simulator | Mahanyas | 4 | 8-14 | needs-unity-local |
 | 16 | OperatorPanel UI (world space: ID, start trial, order display, version) | Mahanyas | 3 | 6 | needs-unity-local, scripts |
 | 17 | Android build settings + build checklist + GitHub Release with APK | Mahanyas | 2 | 15 | needs-unity-local |
 | 18 | Device test checklist, run on every release (fps, locomotion, levers, CSV pull) | Ashley | 1 per build | 17 | needs-headset |
-| 19 | Google Form: baseline + demographics, SSQ x4, final ranking | Ashley | 2 | none | cloud-ok, study |
+| 19 | Google Form: baseline + demographics, SSQ x4, final ranking | Yulisa | 2 | none | cloud-ok, study |
 | 20 | Operator checklist + participant script (docs/OPERATOR_CHECKLIST.md) | Ashley (Mahanyas drafts) | 2 | 19 | cloud-ok, docs, study |
 | 21 | analysis/analyze.py + fake_data.py + tests | Sai (Mahanyas drafts) | 6 | 5 | cloud-ok, data |
-| 22 | Layout balancing: lever spot difficulty check across A/B/C | Yulisa | 2 | 11-13 | needs-unity-local, world |
+| 22 | Layout balancing: lever spot difficulty check across A/B/C | Mahanyas (build) + Ashley (pilot times) | 2 | 11-13 | needs-unity-local, world |
 | 23 | Pilot with 1-2 people, fix list | Ashley | 3 | 17, 19, 20 | needs-headset, study |
-| 24 | Recruitment + scheduling 9-12 participants | Ashley (+Yulisa helps find people) | 3 | 23 | study |
+| 24 | Recruitment + scheduling 9-12 participants | Yulisa + Ashley | 3 | 23 | study |
 | 25 | Data collection P01-P12 | Ashley | 12 | 23 | needs-headset, study |
 | 26 | Data upload + commit per session | Ashley + Mahanyas | 2 | 25 | data |
 | 27 | Run analysis, results tables and plots | Sai | 4 | 21, 25 | cloud-ok, data |
 | 28 | Final report: methods/results/discussion | all (sections split) | 4 each | 27 | docs |
 | 29 | Final slides + rehearsal | all | 2 each | 27 | docs |
 
-Rough totals: Mahanyas ~36 h (setup, rig, scripts, Main scene, builds), Yulisa ~25 h (rooms 1+2, practice, layout balance, recruiting help), Sai ~31 h (kit, interactables, room 3, analysis), Ashley ~32 h (device QA, forms, pilot, all sessions, data). Report/slides split evenly.
+Split (updated Oct 27): **Mahanyas does all Unity / VR development** (rooms, lever, building, rig, Main scene, builds). **Ashley**: Quest testing every build, pilot, sessions, data upload, CITI certificates. **Sai**: analysis scripts and results, Next Goals + Challenges in the reports. **Yulisa**: report lead, Updated Project Items, Google Form, recruiting. Everyone writes their own report section and helps with slides.
 
-## 6. Timeline (assumed 8 weeks; final presentation date NOT found, assumed week of Nov 30. Please confirm)
+## 6. Timeline
+**Interim report + 1-2 min demo video + presentation due Nov 6.** Final presentation assumed the week of Nov 30 (still to confirm).
+
 | Week | Dates | Milestone (GitHub milestone name) |
 |---|---|---|
 | W1 | Oct 12-18 | **M1 Setup**: repo hygiene, Unity project, everyone opens it, Ashley sideloads a test APK (#1-5, #19 draft) |
@@ -270,8 +289,8 @@ No feature work after the v1.0 freeze; only crash fixes, and every rebuild gets 
 ## 7. Branching and PR rules
 - `main` is protected: PR only, 1 approval, CI green. No direct pushes.
 - Branch names: `<name>/<issue#>-<short-desc>`, e.g. `yulisa/11-room1-greybox`, `sai/21-analysis`.
-- Reviews: Mahanyas reviews everyone; Sai or Yulisa reviews Mahanyas's PRs. Room PRs include a screenshot. Script PRs pass CI.
-- `.github/CODEOWNERS`: `Main.unity` and `PlayerRig.prefab` -> Mahanyas; `Room_1/2`, `PracticeRoom` -> Yulisa; `Room_3`, `Kit_*`, `Lever/Gate/ExitDoor` -> Sai; `analysis/` -> Sai; `docs/OPERATOR_CHECKLIST.md` -> Ashley.
+- Reviews: Mahanyas reviews docs/analysis PRs; any teammate can review Mahanyas's Unity PRs (screenshot or short clip in the PR). Script PRs pass CI.
+- `.github/CODEOWNERS`: everything Unity (`Assets/`, `Packages/`, `ProjectSettings/`) -> Mahanyas; `analysis/` -> Sai; `docs/OPERATOR_CHECKLIST.md` -> Ashley; the rest -> Mahanyas.
 - **Main.unity**: only Mahanyas commits changes to it. Everyone else changes their own prefab; changes inside a prefab show up in Main automatically. If you need Main changed (new object, moved room), open an issue or ask in the group chat.
 - Pull `main` before opening Unity, keep PRs small and short-lived (merge within 2-3 days), never edit `.unity`/`.prefab` YAML by hand.
 - No secrets, APKs, or participant names in the repo. APKs go in GitHub Releases.
@@ -297,7 +316,7 @@ No feature work after the v1.0 freeze; only crash fixes, and every rebuild gets 
 6. **Grid cell size**: 1.0 m with 0.15 m hysteresis OK?
 7. **Data storage**: commit anonymized CSVs to `data/raw/` in this repo (my pick), or keep them only in Drive?
 8. **Ashley's setup**: is her Quest 3 already in developer mode, and does she have a Windows/Mac laptop for MQDH? Is she available Thanksgiving week? Is anyone else ever near her for a headset hand-off?
-9. **GitHub usernames** for Yulisa, Sai, Ashley (for CODEOWNERS, assignees, and inviting them as collaborators).
+9. ~~GitHub usernames~~ answered: Ashley `apoppa17`, Yulisa `ymedrano12`, Sai `randomguy6`.
 10. **Branches**: the repo has no `main` yet. OK if I push the hygiene commit to `baira/laughing-cori-q1gext` and you create `main` from it on GitHub (or I create `main` from it)? Also OK to turn on branch protection?
 11. **Latin square**: keep the approved 3-order square (simple, matches the deck), or with 12 people use all 6 orders (2 each) to also balance carryover? I recommend keeping the approved design.
 12. **Demographics**: add age range, prior VR experience, and motion-sickness susceptibility to the baseline form? (Recommended, needs no extra code.)

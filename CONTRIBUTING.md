@@ -55,14 +55,15 @@ Run **Team8 > 1 Setup Project** first (once), then **Team8 > 2 Build Greybox**. 
 ## 2. Who owns what
 | Thing | Owner |
 |---|---|
-| `Main.unity`, `PlayerRig`, StudyManagers, OperatorPanel, scripts, builds | Mahanyas |
-| `Room_1`, `Room_2`, `PracticeRoom`, Lobby geometry | Yulisa |
-| `Room_3`, Exit, `Kit_*` pieces, Lever/Gate/ExitDoor visuals, `analysis/` | Sai |
-| Headset testing, Google Form, `docs/OPERATOR_CHECKLIST.md`, sessions, data upload | Ashley |
+| All Unity / VR work: rooms, lever, building, `Main.unity`, `PlayerRig`, scripts, builds | Mahanyas |
+| Quest testing every build, pilot, study sessions, data upload, `docs/OPERATOR_CHECKLIST.md`, CITI certificates | Ashley |
+| `analysis/`, results, Next Goals + Challenges in the reports | Sai |
+| Report lead, Updated Project Items, Google Form, recruiting | Yulisa |
 
 Rules:
-- Only Mahanyas commits changes to `Main.unity`. Edit your room in **prefab mode** or in your own `Scenes/Sandbox/Sandbox_<YourName>.unity`. Prefab changes show up in Main automatically.
-- Need something changed in Main? Open an issue or say it in the group chat.
+- Only Mahanyas commits Unity changes (`Assets/`, `Packages/`, `ProjectSettings/`). If you spot something in the world that should change, open an issue with a screenshot.
+- You can still open the project in Unity to look around and test (see below), just don't commit those changes.
+- Docs, analysis and data go through a normal branch + pull request.
 - Never hand-edit `.unity` / `.prefab` / `.meta` files in a text editor.
 
 ## 3. Testing without a headset

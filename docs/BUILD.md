@@ -6,8 +6,8 @@ Everything is built from the **Team8** menu in Unity, in this order. Each step i
 |---|---|---|---|
 | 1 | Team8 > 1 Setup Project | Installs OpenXR, Unity OpenXR: Meta, Test Framework; imports XRI Starter Assets + XR Device Simulator; new Input System; Android app id. Then opens XR Plug-in Management. | once per project (Mahanyas) |
 | 1b | (by hand) | XR Plug-in Management > Android tab: tick **OpenXR**, tick **Meta Quest** feature group, Project Validation > **Fix All**. Restart Unity. | once |
-| 2 | Team8 > 2 Build Greybox | Room_1/2/3, PracticeRoom, Lobby prefabs + `Sandbox_Greybox` scene. Never overwrites existing room prefabs. | once; rooms then owned by Yulisa/Sai |
-| 2b | Team8 > 2b Dress Rooms | Themes the rooms (warehouse / office / workshop) with the CC0 kit from `tools/fetch_assets.py`. Greybox boxes stay as the colliders so every room has the same blockers; lever spots never move. Skips rooms that are already dressed. | after the kit is fetched |
+| 2 | Team8 > 2 Build Greybox | Room_1/2/3, PracticeRoom, Lobby prefabs + `Sandbox_Greybox` scene. Never overwrites existing room prefabs. | once |
+| 2b | Team8 > 2b Dress Rooms | Themes the rooms (English bedroom / antique attic / Victorian kitchen): hiding kits around each lever spot with the same geometry in every room, a smaller lever, furniture along the walls (same count per room), wall decor, 6 grabbable decoys. Uses the CC0 kit from `tools/fetch_assets.py` when it is there, simple built shapes otherwise. Skips rooms that are already dressed. | after the kit is fetched |
 | 2c | Team8 > 2c Build Building | `Building.prefab`: south corridor, front hall, east wing, closed doors (same in every room), ceilings, roof, light panels. Room prefabs are not touched. | any time |
 | - | Team8 > Check Triangle Budget | Room + building must stay under 750k triangles; drops decoy props first if a room is over. | after dressing |
 | 3 | Team8 > 3 Build Player Rig | `PlayerRig.prefab` (variant of the Starter Assets rig) with LocomotionSwitcher, PositionLogger, TeleportTrail; snap turn 45 on the right stick only; vignette off. | Mahanyas |
