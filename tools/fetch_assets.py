@@ -46,6 +46,7 @@ TEXTURE_ROLES = {
     "wall_plaster": (["painted_plaster_wall", "beige_wall_001"], ["plaster", "painted_wall"]),
     "ceiling": ([], ["ceiling", "plaster", "white_wall"]),
     "exterior": ([], ["brick_wall", "brick", "concrete_wall"]),
+    "leather": ([], ["leather", "fabric_leather"]),
 }
 
 

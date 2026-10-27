@@ -1,54 +1,115 @@
 using System.Collections.Generic;
 using System.Linq;
+using Team8.Core;
 using UnityEditor;
 using UnityEngine;
 
 // Team8 > 2b Dress Rooms
-// Turns the greybox rooms into themed rooms (warehouse / office / workshop) with the CC0 kit.
-// For study balance the greybox boxes stay as the colliders (same blockers in every room);
-// only their look changes: each box gets a kit model scaled to fit inside it and its grey
-// renderer is hidden. Lever spots never move. Every room also gets the same number of
-// grabbable decoy props in fixed slots away from the lever spots.
+// Turns the greybox rooms into themed rooms: 1 English bedroom, 2 antique attic, 3 Victorian kitchen.
+// RoomPlanner decides where things go, the themes decide how they look. For study balance:
+//   - every lever spot gets a hiding kit with the same size in every room (A under, B behind, C inside)
+//   - the lever is small and sits at the kit's lever pose (the LeverSpot_* markers move there)
+//   - every room gets the same number of wall pieces, one centre piece and the same number of decoys
+// The greybox Partition_/Prop_ boxes are removed (the kits and centre piece replace them).
 // Rooms that already have a DressedRoom component are skipped, so hand edits are safe.
 public static class RoomDresser
 {
     public const string RoomFolder = "Assets/_Project/Prefabs/Rooms";
-    public const int PropsPerRoom = 4;
-    const float MinPropDistanceToLever = 1.5f;
-    const float MaxPropSize = 0.6f;
+    public const int PropsPerRoom = 6;
+    const float MaxPropSize = 0.3f;
+    static readonly string[] Letters = { "A", "B", "C" };
 
-    class Theme
+    const StaticEditorFlags Static = StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI |
+                                     StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic;
+
+    static RoomTheme ThemeFor(int r)
     {
-        public string name, floor, wall, tall, low;
-        public Color floorColor, wallColor;
+        if (r == 1) return new BedroomTheme();
+        if (r == 2) return new AtticTheme();
+        return new KitchenTheme();
     }
-
-    static readonly Theme[] Themes =
-    {
-        new Theme { name = "warehouse", floor = "floor_concrete", wall = "wall_concrete", tall = "tall_metal", low = "low_crate",
-                    floorColor = new Color(0.50f, 0.50f, 0.48f), wallColor = new Color(0.70f, 0.70f, 0.66f) },
-        new Theme { name = "office", floor = "floor_wood", wall = "wall_plaster", tall = "tall_wood", low = "low_table",
-                    floorColor = new Color(0.55f, 0.42f, 0.30f), wallColor = new Color(0.88f, 0.86f, 0.80f) },
-        new Theme { name = "workshop", floor = "floor_metal", wall = "wall_concrete", tall = "tall_metal", low = "low_barrel",
-                    floorColor = new Color(0.40f, 0.42f, 0.45f), wallColor = new Color(0.62f, 0.64f, 0.60f) },
-    };
 
     [MenuItem("Team8/2b Dress Rooms", priority = 2)]
     public static void DressAll()
     {
         Kit.Load();
-        for (int r = 1; r <= 3; r++) Dress(r, Themes[r - 1]);
+
+        // same number of wall pieces in every room: the smallest count any room can fit
+        var plans = new Plan[3];
+        for (int r = 1; r <= 3; r++) plans[r - 1] = MakePlan(r);
+        if (plans.Any(p => p == null)) return;
+        int wallCount = plans.Min(p => p.Slots.Count);
+
+        for (int r = 1; r <= 3; r++) Dress(r, plans[r - 1], wallCount);
+        UpdatePracticeLever();
         AssetDatabase.SaveAssets();
     }
 
-    static void Dress(int r, Theme theme)
+    // Deletes the rooms the dresser made (DressedRoom.generated) and builds them again from scratch.
+    [MenuItem("Team8/2b Redo Generated Rooms", priority = 3)]
+    public static void Redo()
+    {
+        if (!Team8Editor.Confirm("Delete the generated Room_1..3 prefabs and dress them again? Hand-dressed rooms are kept.")) return;
+        for (int r = 1; r <= 3; r++)
+        {
+            string path = RoomFolder + "/Room_" + r + ".prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var mark = prefab != null ? prefab.GetComponent<DressedRoom>() : null;
+            if (mark != null && mark.generated) AssetDatabase.DeleteAsset(path);
+        }
+        GreyboxBuilder.Build();
+        DressAll();
+    }
+
+    class Plan
+    {
+        public (double x, double z)[] Spots;
+        public HideKit[] Kits;
+        public List<Box2> Center;
+        public List<Slot> Slots;
+    }
+
+    static Plan MakePlan(int r)
     {
         string path = RoomFolder + "/Room_" + r + ".prefab";
-        if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (prefab == null)
         {
             Debug.LogWarning("[Dress] " + path + " missing, run Team8 > 2 Build Greybox first");
-            return;
+            return null;
         }
+        var plan = new Plan();
+        plan.Spots = Letters.Select(l =>
+        {
+            var t = prefab.transform.Find("LeverSpot_" + l);
+            return t == null ? (0.0, 0.0) : ((double)t.localPosition.x, (double)t.localPosition.z);
+        }).ToArray();
+        if (prefab.GetComponent<DressedRoom>() != null)
+        {
+            // already dressed: spots moved to the kit lever poses, so plan from the original greybox spots
+            plan.Spots = OriginalSpots(prefab.transform);
+        }
+        plan.Kits = RoomPlanner.Kits(plan.Spots);
+        plan.Center = RoomPlanner.CenterPieces(plan.Spots, plan.Kits);
+        plan.Slots = RoomPlanner.PerimeterSlots(r - 1, plan.Spots, plan.Kits, plan.Center);
+        return plan;
+    }
+
+    // Dressed rooms keep their kits; the kit roots remember the original spot in their name-free pose.
+    static (double x, double z)[] OriginalSpots(Transform room)
+    {
+        return Letters.Select(l =>
+        {
+            var k = room.Find("Kit_" + l);
+            var spot = k != null ? k.Find("Spot") : null;
+            var p = spot != null ? spot.position - room.position : Vector3.zero;
+            return ((double)p.x, (double)p.z);
+        }).ToArray();
+    }
+
+    static void Dress(int r, Plan plan, int wallCount)
+    {
+        string path = RoomFolder + "/Room_" + r + ".prefab";
         var room = PrefabUtility.LoadPrefabContents(path);
         try
         {
@@ -57,26 +118,75 @@ public static class RoomDresser
                 Debug.Log("[Dress] Room_" + r + " already dressed, skipping");
                 return;
             }
+            var theme = ThemeFor(r);
+            theme.RoomIndex = r - 1;
+            var t = room.transform;
 
-            var floorMat = Kit.Surface(theme.name + "_Floor", theme.floor, "floor_concrete", new Vector2(4, 4), theme.floorColor);
-            var wallMat = Kit.Surface(theme.name + "_Wall", theme.wall, "wall_concrete", new Vector2(4, 1.5f), theme.wallColor);
-
-            foreach (var t in room.GetComponentsInChildren<Transform>(true).ToArray())
+            // greybox blockers out, themed surfaces in
+            foreach (var child in t.Cast<Transform>().ToArray())
+                if (child.name.StartsWith("Partition_") || child.name.StartsWith("Prop_")) Object.DestroyImmediate(child.gameObject);
+            foreach (var mr in room.GetComponentsInChildren<MeshRenderer>(true))
             {
-                var mr = t.GetComponent<MeshRenderer>();
-                if (mr == null) continue;
-                if (t.name == "Floor" && !mr.sharedMaterial.name.Contains("Exit")) mr.sharedMaterial = floorMat;
-                else if (t.name.StartsWith("Wall_")) mr.sharedMaterial = wallMat;
-                else if (t.name.StartsWith("Partition_") || t.name.StartsWith("Prop_")) DressOccluder(room.transform, t, theme);
+                if (mr.name == "Floor" && !mr.sharedMaterial.name.Contains("Exit")) mr.sharedMaterial = theme.Floor;
+                else if (mr.name.StartsWith("Wall_")) mr.sharedMaterial = theme.Wall;
+            }
+            if (r > 1) WestSkin(t, theme.Wall);   // the shared wall is painted in the previous room's colour
+
+            // hiding kits + lever spots
+            for (int i = 0; i < 3; i++)
+            {
+                var kit = plan.Kits[i];
+                var root = Piece(t, "Kit_" + Letters[i], kit.Cover.X, kit.Cover.Z, kit.Cover.Yaw);
+                if (kit.Kind == KitKind.Under) theme.UnderKit(root, kit);
+                else if (kit.Kind == KitKind.Behind) theme.BehindKit(root, kit);
+                else theme.InsideKit(root, kit);
+                Solid(root, new Vector3((float)kit.Cover.W, (float)kit.CoverHeight, (float)kit.Cover.D));
+
+                // remember where the original spot was (for planning again later)
+                var mark = new GameObject("Spot").transform;
+                mark.SetParent(root, true);
+                mark.position = t.position + new Vector3((float)plan.Spots[i].x, 0, (float)plan.Spots[i].z);
+
+                var spot = t.Find("LeverSpot_" + Letters[i]);
+                spot.localPosition = new Vector3((float)kit.LeverX, (float)kit.LeverY, (float)kit.LeverZ);
+                spot.localRotation = Quaternion.Euler(0, (float)kit.LeverYaw, 0);
             }
 
-            AddProps(room.transform, r);
-            AddAmbient(room.transform, r);
-            if (r == 3) AddExitSign(room.transform);
+            // the lever starts on spot A; the TrialManager moves it per layout
+            var lever = GreyboxBuilder.ReplaceLever(t, r);
+            var spotA = t.Find("LeverSpot_A");
+            lever.transform.localPosition = spotA.localPosition;
+            lever.transform.localRotation = spotA.localRotation;
 
-            room.AddComponent<DressedRoom>().theme = theme.name;
+            // centre piece + wall furniture
+            foreach (var c in plan.Center)
+            {
+                var root = Piece(t, "CenterPiece", c.X, c.Z, c.Yaw);
+                theme.CenterPiece(root);
+                Solid(root, new Vector3((float)RoomPlanner.CenterW, (float)RoomPlanner.CenterH, (float)RoomPlanner.CenterD));
+            }
+            var slots = RoomPlanner.Spread(plan.Slots, wallCount);
+            for (int i = 0; i < slots.Count; i++)
+            {
+                var root = Piece(t, "WallPiece_" + (i + 1), slots[i].X, slots[i].Z, slots[i].Yaw);
+                theme.WallPiece(root, i);
+                FitSolid(root, new Vector3((float)RoomPlanner.SlotWidth, 0, (float)RoomPlanner.SlotDepth));
+            }
+
+            var decor = new GameObject("Decor").transform;
+            decor.SetParent(t, false);
+            theme.Decor(decor);
+            MarkStatic(t);
+
+            var decoys = RoomPlanner.DecoySlots(plan.Spots, plan.Kits, plan.Center, slots, PropsPerRoom);
+            AddDecoys(t, r, theme, decoys);
+            if (r == 3) AddExitSign(t);
+
+            var dressed = room.AddComponent<DressedRoom>();
+            dressed.theme = theme.Name;
             PrefabUtility.SaveAsPrefabAsset(room, path);
-            Debug.Log("[Dress] Room_" + r + " dressed as " + theme.name);
+            Debug.Log("[Dress] Room_" + r + " dressed as " + theme.Name + ": 3 kits, " + slots.Count + " wall pieces, " +
+                      plan.Center.Count + " centre piece, " + decoys.Count + " decoys");
         }
         finally
         {
@@ -84,100 +194,100 @@ public static class RoomDresser
         }
     }
 
-    // Put a kit model inside the greybox box (same footprint/height), hide the grey box, keep its collider.
-    static void DressOccluder(Transform room, Transform box, Theme theme)
+    static Transform Piece(Transform room, string name, double x, double z, double yaw)
     {
-        Vector3 size = box.localScale; // greybox boxes are unit cubes scaled to size
-        bool tall = size.y >= 1.5f;
-        var entry = Kit.ModelEntry(tall ? theme.tall : theme.low);
-        if (entry == null) entry = Kit.ModelEntry(tall ? "tall_metal" : "low_crate");
-        var model = Kit.Spawn(entry, box.name + "_Model");
-        if (model == null) return; // no kit downloaded: keep the grey box visible
+        var root = new GameObject(name).transform;
+        root.SetParent(room, false);
+        root.localPosition = new Vector3((float)x, 0, (float)z);
+        root.localRotation = Quaternion.Euler(0, (float)yaw, 0);
+        return root;
+    }
 
-        var b = Kit.LocalBounds(model);
-        if (b.size == Vector3.zero) { Object.DestroyImmediate(model); return; }
-        Vector3 s = b.size, c0 = b.center;
+    // one solid box per piece, standing on the floor
+    static void Solid(Transform root, Vector3 size)
+    {
+        var box = root.gameObject.AddComponent<BoxCollider>();
+        box.center = new Vector3(0, size.y / 2, 0);
+        box.size = size;
+    }
 
-        // turn the model 90 degrees if its long side doesn't match the box's long side
-        bool swap = (s.x >= s.z) != (size.x >= size.z);
-        float sx = swap ? s.z : s.x, sz = swap ? s.x : s.z;
-        float k = Mathf.Min(size.x / Mathf.Max(sx, 0.01f), size.y / Mathf.Max(s.y, 0.01f), size.z / Mathf.Max(sz, 0.01f));
+    // footprint fixed by the planner, height from what the theme built
+    static void FitSolid(Transform root, Vector3 footprint)
+    {
+        float top = 0.5f;
+        foreach (var mf in root.GetComponentsInChildren<MeshFilter>())
+        {
+            var b = mf.sharedMesh.bounds;
+            var m = root.worldToLocalMatrix * mf.transform.localToWorldMatrix;
+            for (int i = 0; i < 8; i++)
+            {
+                var corner = b.center + Vector3.Scale(b.extents, new Vector3(i & 1, (i >> 1) & 1, (i >> 2) & 1) * 2 - Vector3.one);
+                top = Mathf.Max(top, m.MultiplyPoint3x4(corner).y);
+            }
+        }
+        Solid(root, new Vector3(footprint.x, top, footprint.z));
+    }
 
-        var rot = box.localRotation * (swap ? Quaternion.Euler(0, 90, 0) : Quaternion.identity);
-        var floorPoint = box.localPosition - new Vector3(0, size.y / 2, 0);
-        var pivotOffset = rot * (new Vector3(c0.x, c0.y - s.y / 2, c0.z) * k);
+    // thin skin over the west face of the shared wall, in this room's wall material (no collider)
+    static void WestSkin(Transform room, Material mat)
+    {
+        foreach (var (z0, z1) in new[] { (0.1f, 3.25f), (4.75f, 7.9f) })
+        {
+            var skin = RoomPart(room, PrimitiveType.Cube, new Vector3(0.105f, 1.5f, (z0 + z1) / 2), new Vector3(0.01f, 3f, z1 - z0), mat);
+            skin.name = "WallSkin_W";
+        }
+    }
 
-        model.transform.SetParent(room, false);
-        model.transform.localRotation = rot;
-        model.transform.localScale = Vector3.one * k;
-        model.transform.localPosition = floorPoint - pivotOffset;
-        GameObjectUtility.SetStaticEditorFlags(model, StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI |
-                                                     StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic);
-
-        box.GetComponent<MeshRenderer>().enabled = false;
+    // everything the dresser built is static (batched + baked) except things that move
+    static void MarkStatic(Transform room)
+    {
+        foreach (Transform root in room)
+        {
+            string n = root.name;
+            if (!(n.StartsWith("Kit_") || n.StartsWith("WallPiece_") || n == "CenterPiece" || n == "Decor" || n == "WallSkin_W")) continue;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                if (t.GetComponentInParent<AmbientSpin>(true) == null)
+                    GameObjectUtility.SetStaticEditorFlags(t.gameObject, Static);
+        }
     }
 
     // ---------- grabbable decoys ----------
 
-    static void AddProps(Transform room, int r)
+    static void AddDecoys(Transform room, int r, RoomTheme theme, List<(double x, double z)> slots)
     {
         var pool = Kit.ModelsWithPrefix("small_prop_");
-        if (pool.Length == 0)
-        {
-            Debug.LogWarning("[Dress] no small props in the kit, Room_" + r + " gets no decoys");
-            return;
-        }
-        var slots = PropSlots(room, PropsPerRoom);
         for (int i = 0; i < slots.Count; i++)
         {
-            var entry = pool[((r - 1) * PropsPerRoom + i) % pool.Length];
-            var prop = Kit.Spawn(entry, "Decoy_" + (i + 1) + "_" + entry.id);
-            if (prop == null) continue;
+            GameObject prop = null;
+            string id = "prop";
+            if (pool.Length > 0)
+            {
+                var entry = pool[((r - 1) * PropsPerRoom + i) % pool.Length];
+                prop = Kit.Spawn(entry, "Decoy_" + (i + 1) + "_" + entry.id);
+                id = entry.id;
+            }
+            if (prop == null)
+            {
+                prop = new GameObject();
+                theme.SmallProp(prop.transform, i);
+                id = theme.Name + "_" + prop.transform.GetChild(0).name.ToLowerInvariant();
+                prop.name = "Decoy_" + (i + 1) + "_" + id;
+            }
 
             var b = Kit.LocalBounds(prop);
             float k = Mathf.Min(1f, MaxPropSize / Mathf.Max(b.size.x, b.size.y, b.size.z, 0.01f));
             prop.transform.SetParent(room, false);
             prop.transform.localScale = Vector3.one * k;
-            prop.transform.localPosition = new Vector3(slots[i].x - b.center.x * k, 0.01f - b.min.y * k, slots[i].y - b.center.z * k);
+            prop.transform.localPosition = new Vector3((float)slots[i].x - b.center.x * k, 0.01f - b.min.y * k, (float)slots[i].z - b.center.z * k);
             prop.transform.localRotation = Quaternion.Euler(0, i * 37f, 0);
 
             var col = prop.AddComponent<BoxCollider>();
             col.center = b.center;
             col.size = b.size;
             var grabbable = prop.AddComponent<GrabbableProp>(); // also adds XRGrabInteractable + Rigidbody
-            grabbable.propName = entry.id;
+            grabbable.propName = id;
             prop.GetComponent<Rigidbody>().mass = 0.5f;
         }
-    }
-
-    // Fixed, spread-out floor spots: >= 1.5 m from every lever spot, clear of solid boxes,
-    // and out of the doorway lanes. Same rules in every room.
-    static List<Vector2> PropSlots(Transform room, int count)
-    {
-        var levers = room.GetComponentsInChildren<Transform>(true)
-            .Where(t => t.name.StartsWith("LeverSpot_"))
-            .Select(t => new Vector2(t.localPosition.x, t.localPosition.z)).ToList();
-        var solids = room.GetComponentsInChildren<BoxCollider>(true).Where(c => !c.isTrigger)
-            .Select(c => { var b = c.bounds; b.center -= room.position; b.Expand(0.7f); return b; }).ToList();
-
-        var candidates = new List<Vector2>();
-        for (float x = 1f; x <= 7f; x += 0.5f)
-        for (float z = 1f; z <= 7f; z += 0.5f)
-        {
-            var p = new Vector2(x, z);
-            if (levers.Any(l => Vector2.Distance(l, p) < MinPropDistanceToLever)) continue;
-            if (solids.Any(b => b.Contains(new Vector3(x, 0.5f, z)))) continue;
-            if ((x < 1.6f || x > 6.4f) && Mathf.Abs(z - 4f) < 1.3f) continue; // doorway lanes
-            candidates.Add(p);
-        }
-
-        // farthest-point sampling from the spot nearest the room centre (deterministic)
-        var picked = new List<Vector2>();
-        if (candidates.Count == 0) return picked;
-        picked.Add(candidates.OrderBy(p => Vector2.Distance(p, new Vector2(4, 4))).First());
-        while (picked.Count < count && picked.Count < candidates.Count)
-            picked.Add(candidates.OrderByDescending(p => picked.Min(q => Vector2.Distance(p, q))).First());
-        return picked;
     }
 
     // Used by BudgetReport when a room is over the triangle budget: fewer objects, not lower quality.
@@ -188,56 +298,36 @@ public static class RoomDresser
         return decoys.Count;
     }
 
-    // ---------- ambient + signage ----------
+    // ---------- practice room + signage ----------
 
-    // One slow background animation per room, at the room centre or on a wall away from lever spots.
-    static void AddAmbient(Transform room, int r)
+    // the practice lever should look exactly like the real ones
+    static void UpdatePracticeLever()
     {
-        var dark = Kit.Flat("AmbientMetal", new Color(0.2f, 0.2f, 0.22f));
-        if (r == 1) // ceiling fan in the middle of the warehouse
+        string path = RoomFolder + "/PracticeRoom.prefab";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null) return;
+        var room = PrefabUtility.LoadPrefabContents(path);
+        try
         {
-            var fan = new GameObject("CeilingFan").transform;
-            fan.SetParent(room, false);
-            fan.localPosition = new Vector3(4, 2.75f, 4);
-            Part(fan, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.2f, 0.05f, 0.2f), dark);
-            for (int i = 0; i < 4; i++)
-            {
-                var blade = Part(fan, PrimitiveType.Cube, Vector3.zero, new Vector3(1.0f, 0.02f, 0.14f), dark);
-                blade.localRotation = Quaternion.Euler(0, i * 45, 0);
-            }
-            fan.gameObject.AddComponent<AmbientSpin>().degreesPerSecond = 45f;
+            var lever = room.GetComponentInChildren<LeverController>(true);
+            if (lever != null && lever.transform.Find("Base") != null) return;   // already the small one
+            GreyboxBuilder.ReplaceLever(room.transform, 0);
+            PrefabUtility.SaveAsPrefabAsset(room, path);
+            Debug.Log("[Dress] practice lever updated");
         }
-        else if (r == 2) // blinking status light on the office's back wall
+        finally
         {
-            var light = Part(room, PrimitiveType.Cube, new Vector3(4, 2.2f, 7.86f), new Vector3(0.08f, 0.08f, 0.04f),
-                Kit.Emissive("StatusLight", new Color(0.2f, 1f, 0.3f)));
-            light.name = "StatusLight";
-            light.gameObject.AddComponent<AmbientBlink>().target = light.GetComponent<Renderer>();
-        }
-        else // slow wall vent fan in the workshop
-        {
-            var vent = new GameObject("WallVent").transform;
-            vent.SetParent(room, false);
-            vent.localPosition = new Vector3(4, 2.3f, 0.14f);
-            for (int i = 0; i < 3; i++)
-            {
-                var blade = Part(vent, PrimitiveType.Cube, Vector3.zero, new Vector3(0.6f, 0.08f, 0.02f), dark);
-                blade.localRotation = Quaternion.Euler(0, 0, i * 60);
-            }
-            var spin = vent.gameObject.AddComponent<AmbientSpin>();
-            spin.axis = Vector3.forward;
-            spin.degreesPerSecond = 90f;
+            PrefabUtility.UnloadPrefabContents(room);
         }
     }
 
     static void AddExitSign(Transform room)
     {
-        var sign = Part(room, PrimitiveType.Cube, new Vector3(7.86f, 2.6f, 4f), new Vector3(0.04f, 0.3f, 0.8f),
+        var sign = RoomPart(room, PrimitiveType.Cube, new Vector3(7.86f, 2.6f, 4f), new Vector3(0.04f, 0.3f, 0.8f),
             Kit.Emissive("ExitSign", new Color(0.1f, 0.9f, 0.3f)));
         sign.name = "ExitSign";
     }
 
-    public static Transform Part(Transform parent, PrimitiveType type, Vector3 localPos, Vector3 scale, Material mat)
+    public static Transform RoomPart(Transform parent, PrimitiveType type, Vector3 localPos, Vector3 scale, Material mat)
     {
         var go = GameObject.CreatePrimitive(type);
         Object.DestroyImmediate(go.GetComponent<Collider>());

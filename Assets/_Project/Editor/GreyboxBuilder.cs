@@ -201,25 +201,54 @@ public static class GreyboxBuilder
         return gc;
     }
 
+    // Small lever (about 30 cm) so it can hide under and inside furniture. The parts have no
+    // colliders; one box on the root is the grab zone, a bit bigger than the lever itself.
     static GameObject Lever(Transform parent, int roomIndex)
     {
         var lever = new GameObject(roomIndex == 0 ? "PracticeLever" : "Lever_" + roomIndex);
         lever.transform.SetParent(parent, false);
-        Box(lever.transform, "Post", Vector3.zero, new Vector3(0.15f, 1.0f, 0.15f), leverMat);
+        Part(lever.transform, "Base", new Vector3(0, 0.03f, 0), new Vector3(0.18f, 0.06f, 0.12f), leverMat);
 
         var pivot = new GameObject("Handle").transform;
         pivot.SetParent(lever.transform, false);
-        pivot.localPosition = new Vector3(0, 1.05f, 0);
-        var stick = Box(pivot, "Stick", Vector3.zero, new Vector3(0.06f, 0.35f, 0.06f), leverMat);
-        stick.transform.localPosition = new Vector3(0, 0.17f, 0);
-        var knob = Box(pivot, "Knob", Vector3.zero, new Vector3(0.12f, 0.12f, 0.12f), leverMat);
-        knob.transform.localPosition = new Vector3(0, 0.36f, 0);
+        pivot.localPosition = new Vector3(0, 0.06f, 0);
+        Part(pivot, "Stick", new Vector3(0, 0.1f, 0), new Vector3(0.025f, 0.2f, 0.025f), leverMat);
+        Part(pivot, "Knob", new Vector3(0, 0.21f, 0), new Vector3(0.05f, 0.05f, 0.05f), leverMat);
+
+        var grab = lever.AddComponent<BoxCollider>();
+        grab.center = new Vector3(0, 0.15f, 0);
+        grab.size = new Vector3(0.26f, 0.3f, 0.3f);
 
         // LeverController requires an XRSimpleInteractable, which gets added with it
         var lc = lever.AddComponent<LeverController>();
         lc.roomIndex = roomIndex;
         lc.handle = pivot;
         return lever;
+    }
+
+    // Swap whatever lever a room has for the current design, keeping its pose. Used by the dresser.
+    public static GameObject ReplaceLever(Transform room, int roomIndex)
+    {
+        if (leverMat == null) MakeMaterials();
+        var old = room.GetComponentInChildren<LeverController>(true);
+        var pos = old != null ? old.transform.localPosition : Vector3.zero;
+        var rot = old != null ? old.transform.localRotation : Quaternion.identity;
+        if (old != null) Object.DestroyImmediate(old.gameObject);
+        var lever = Lever(room, roomIndex);
+        lever.transform.localPosition = pos;
+        lever.transform.localRotation = rot;
+        return lever;
+    }
+
+    static void Part(Transform parent, string name, Vector3 center, Vector3 size, Material mat)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.name = name;
+        Object.DestroyImmediate(go.GetComponent<Collider>());
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = center;
+        go.transform.localScale = size;
+        go.GetComponent<Renderer>().sharedMaterial = mat;
     }
 
     static void Zone(Transform room, int index)

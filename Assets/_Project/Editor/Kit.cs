@@ -98,6 +98,53 @@ public static class Kit
         return Save(mat, path);
     }
 
+    // Kit texture multiplied by a tint (e.g. plaster texture tinted hunter green).
+    public static Material Tinted(string name, string role, string fallbackRole, Vector2 tiling, Color tint)
+    {
+        if (index == null) Load();
+        string path = MatFolder + "/" + name + ".mat";
+        var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat != null) return mat;
+        var tex = index.textures.FirstOrDefault(t => t.role == role);
+        if (tex == null) tex = index.textures.FirstOrDefault(t => t.role == fallbackRole);
+        mat = NewLit(tint);
+        if (tex != null && ApplyMaps(mat, tex))
+        {
+            mat.color = tint;
+            mat.mainTextureScale = tiling;
+        }
+        return Save(mat, path);
+    }
+
+    public static Material Metal(string name, Color color, float metallic, float smoothness)
+    {
+        string path = MatFolder + "/" + name + ".mat";
+        var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat != null) return mat;
+        mat = NewLit(color);
+        mat.SetFloat("_Metallic", metallic);
+        mat.SetFloat("_Smoothness", smoothness);
+        return Save(mat, path);
+    }
+
+    // Two-colour checker (kitchen floor), saved as a texture asset so it batches and bakes.
+    public static Material Checker(string name, Color a, Color b, float tiles)
+    {
+        string path = MatFolder + "/" + name + ".mat";
+        var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (mat != null) return mat;
+        EnsureFolder(MatFolder);
+        var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
+        tex.SetPixels(new[] { a, b, b, a });
+        tex.Apply();
+        AssetDatabase.CreateAsset(tex, MatFolder + "/" + name + "_tex.asset");
+        mat = NewLit(Color.white);
+        mat.mainTexture = tex;
+        mat.mainTextureScale = new Vector2(tiles, tiles);
+        mat.SetFloat("_Smoothness", 0.55f);
+        return Save(mat, path);
+    }
+
     public static Material Flat(string name, Color color)
     {
         string path = MatFolder + "/" + name + ".mat";
